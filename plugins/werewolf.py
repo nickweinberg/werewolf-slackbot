@@ -116,7 +116,7 @@ def command_logic(command, user_id):
                     if not state["votes"].get(user_id, False): # cant vote more than once
                         voted = command[1]
                         state["votes"][user_id] = voted
-                        vote_msg = USER_DICT[user_id]["user_name"] + " voted for " + voted.
+                        vote_msg = USER_DICT[user_id]["user_name"] + " voted for " + voted
 
                         if len(state["votes"].keys()) == len(state["players"]):
                             # everyone has voted
