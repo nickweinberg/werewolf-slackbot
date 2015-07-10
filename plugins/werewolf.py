@@ -48,7 +48,14 @@ def command_logic(command, user_id):
             state["players"].append(user_id)
             outputs.append([ROOM, user_name + " joined"])
         else:
-            outputs.append(ROOM, USER_DICT[user_id] + " is already in game")
+            try:
+                u = USER_DICT[user_id]
+            except Exception as e:
+                print(e)
+                u = "INVALID USER"
+
+            outputs.append([ROOM, u + " is already in game"])
+
     elif command[0] == "start":
         if state["players"] > 0 and state["is_finished"] == True:
             state["is_finished"] = False
@@ -101,6 +108,7 @@ def command_logic(command, user_id):
         else:
             outputs.append([ROOM, "You do not have the capacity for violent murder... or it is not not night"])
     elif command[0] == "vote":
+        command[1] = command[1:] # everything after @ sign.
         if state['is_night'] == False:
             voted_on_id = R_USER_DICT.get(command[1], False)
             if user_id in state["players"]: # only players alive can vote
@@ -108,7 +116,7 @@ def command_logic(command, user_id):
                     if not state["votes"].get(user_id, False): # cant vote more than once
                         voted = command[1]
                         state["votes"][user_id] = voted
-                        if len(state["votes"].keys()) == players:
+                        if len(state["votes"].keys()) == len(state["players"]):
                             # everyone has voted
                             resolve_vote_round()
                     else:
@@ -131,7 +139,7 @@ def night_round():
 def day_round():
     """ night round. voting and stuff. """
     state["is_night"] = False
-    outputs.append([ROOM, "It is now day time.\n  Will you find the wolf in time?"])
+    outputs.append([ROOM, "It is now day time.\n  Type '!vote @username'. When everyone has voted, user with most votes dies."])
 
 def resolve_vote_round():
     """ count up votes """
@@ -162,7 +170,7 @@ def resolve_round(round_flag):
     outputs.append([ROOM, "There are " +str(len(state["players"])) + " players left."])
     if len(state["players"]) <= len(state["werewolves"]):
         outputs.append([ROOM, "Werewolves win."])
-    elif len(state["werewolves"]):
+    elif len(state["werewolves"]) == 0:
         outputs.append([ROOM, "Village wins."])
     else:
         if round_flag == "day":
@@ -185,7 +193,7 @@ def new_game():
 
 def process_message(data):
     print(state)
-    message = data['text']
+    message = data.get('text', '')
     if message.startswith('!'): # trigger is "!"
         command = message[1:] # everything after !
         command = command.split(" ")
