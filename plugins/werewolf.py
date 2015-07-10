@@ -54,7 +54,7 @@ def command_logic(command, user_id):
                 print(e)
                 u = "INVALID USER"
 
-            outputs.append([ROOM, u + " is already in game"])
+            outputs.append([ROOM, u["user_name"] + " is already in game"])
 
     elif command[0] == "start":
         if state["players"] > 0 and state["is_finished"] == True:
@@ -108,7 +108,7 @@ def command_logic(command, user_id):
         else:
             outputs.append([ROOM, "You do not have the capacity for violent murder... or it is not not night"])
     elif command[0] == "vote":
-        command[1] = command[1:] # everything after @ sign.
+        # command[1] = command[1] # everything after @ sign.
         if state['is_night'] == False:
             voted_on_id = R_USER_DICT.get(command[1], False)
             if user_id in state["players"]: # only players alive can vote
@@ -116,17 +116,29 @@ def command_logic(command, user_id):
                     if not state["votes"].get(user_id, False): # cant vote more than once
                         voted = command[1]
                         state["votes"][user_id] = voted
+                        vote_msg = USER_DICT[user_id]["user_name"] + " voted for " + voted.
+
                         if len(state["votes"].keys()) == len(state["players"]):
                             # everyone has voted
+                            outputs.append([ROOM, "Everyone has voted."])
                             resolve_vote_round()
                     else:
-                        outputs.append([ROOM, USER_DICT[user_id] + ", you cannot vote more than once."])
+                        outputs.append([ROOM, USER_DICT[user_id]["user_name"] + ", you cannot vote more than once."])
                 else:
                     outputs.append([ROOM, str(command[1]) + "is not playing"])
             else:
-                outputs.append([ROOM, USER_DICT[user_id] + " can not vote."])
+                outputs.append([ROOM, USER_DICT[user_id]['user_name'] + " can not vote."])
         else:
             outputs.append([ROOM, "Cant vote at night."])
+    elif command[0] == "v":
+        if state["is_night"] == False:
+            if len(state["votes"].keys() > 0):
+                # show all the votes
+                vote_msg = [item for item in state["votes"].items()]
+                # state["votes"][user_id] = voted
+                outputs.append([ROOM, "\n".join(vote_msg)])
+
+
     else:
         outputs.append([ROOM, "Not a valid command."])
 
@@ -139,24 +151,30 @@ def night_round():
 def day_round():
     """ night round. voting and stuff. """
     state["is_night"] = False
-    outputs.append([ROOM, "It is now day time.\n  Type '!vote @username'. When everyone has voted, user with most votes dies."])
+    outputs.append([ROOM, "It is now day time.\n  Type '!vote username'. When everyone has voted, user with most votes dies."])
 
 def resolve_vote_round():
     """ count up votes """
-    vote_count = default_dict(int)
+    vote_count = defaultdict(int)
     for user in state["votes"]:
         vote_count[user] += 1
 
     killed_name = max(vote_count.iterkeys(), key=(lambda u: vote_count[u]))
+    print(vote_count)
+    print(killed_name)
+
     kill_output = [un + " got " + str(vote_count[un]) + " votes.\n"
                         for un in vote_count.keys()]
     outputs.append([ROOM, ''.join(kill_output)])
 
     outputs.append([ROOM, killed_name + " was killed."])
 
-    killed_id = R_USER_DICT[killed_name]
-    kill_index = state["players"].index(killed_id)
-    state["players"].pop(kill_index)
+    try:
+        killed_id = R_USER_DICT[killed_name]
+        kill_index = state["players"].index(killed_id)
+        state["players"].pop(kill_index)
+    except Exception as e:
+        print(e)
 
 
     state["votes"] = {}
