@@ -79,6 +79,22 @@ def get_game_state():
     game_state = {}
     return None
 
+def update_game_state(mutated_g):
+    """
+    Only place we are allowed to change game state.
+
+    If we save an ordered list of all game states,
+    we can undo them all. And do automated playbacks.
+
+    ex. Game_ID: [G0, G1, G2, G3.. Gn]
+    If we hold this in like Redis, can resume if server breaks/internet goes down at exact position.
+
+    """
+    print(mutated_g) # for debugging.
+
+    return updated_game_state
+
+
 def is_valid_action(user_id, action, g):
     """
     For game actions only.

@@ -7,6 +7,8 @@ from game_actions import (
     player_vote
 )
 
+from main import send_message
+
 def command_router(g, command, user_id):
     """
     command: list [command, args]
@@ -23,7 +25,7 @@ def command_router(g, command, user_id):
 
     --- Game Actions ---
     kill(eat_player)   - werewolf attempts to eat a player
-    vote(player_vote)
+    vote(player_vote)  - players attempts to vote.
     """
     router = {
         "create": create_game,
@@ -35,8 +37,10 @@ def command_router(g, command, user_id):
     }
 
     if router.get(command[0]):
+        # command[0] is command (ie. 'kill' if user sent '!kill')
         command_fn = router[command[0]]
+        # command[1] is args (ie. 'maksym' if user sent '!kill maksym')
         command_fn(g, user_id, command[1:])
-
-
+    else:
+        send_message("Not a valid command.")
 
