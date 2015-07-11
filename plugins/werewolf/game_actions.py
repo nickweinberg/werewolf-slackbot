@@ -1,7 +1,7 @@
 """
 All game actions.
 """
-from main import get_user_map
+from main import get_user_map, send_message, get_user_name
 
 def players_in_game(g):
     return g['players'].keys()
@@ -98,10 +98,27 @@ def join(g, user_id, *args):
     Let player join game.
     """
     result, message = mod_valid_action(user_id, 'join', g)
-    # get_user_map().
+    if not result:
+        send_message(message)
+        return None # could not join
 
     # if player successfully joins.
-    # poll slack for user name.
+    u = get_user_map(g)
+    user_name = u.id_dict.get(user_id)
+
+    if not user_name:
+        # user not in user_map yet
+        # get_user_name polls slack and adds to user map
+        user_name = get_user_name(g, user_id)
+
+    # tell the channel the player joined.
+    join_message = "%s joined the game." % user_name
+    send_message(join_message)
+    return None
+
+
+
+
 
 def mod_valid_action(user_id, action, g, target_name=None):
     """
@@ -111,7 +128,7 @@ def mod_valid_action(user_id, action, g, target_name=None):
     """
     MSG = {
         'already_join': 'You have already joined game.',
-        'not_waiting': 'Game not waiting for players to join.'
+        'not_waiting': 'Game not waiting for players to join.',
         'num_players': 'Not enough players to start.',
     }
     def can_create():
@@ -122,10 +139,11 @@ def mod_valid_action(user_id, action, g, target_name=None):
 
     def can_join():#idk dont want to override join()
         # status is WAITING_FOR_JOIN
-        if g.get('STATUS') not 'WAITING_FOR_JOIN':
+        if g.get('STATUS') != 'WAITING_FOR_JOIN':
             return False, MSG['not_waiting']
         # Not already in the game
-
+        if player_in_game(g, user_id):
+            return False, MSG['already_join']
         return True, None
 
     if action == 'create':

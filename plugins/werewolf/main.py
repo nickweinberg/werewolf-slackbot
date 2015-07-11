@@ -86,7 +86,7 @@ def get_user_map(g):
     else:
         return USER_MAP
 
-def set_user_map(g, user_id, name):
+def set_user_map(g, user_id, name, DM=None):
     """
     Only way I'm letting you schmucks update user map.
     Gets USER_MAP.
@@ -94,7 +94,7 @@ def set_user_map(g, user_id, name):
 
     """
     u = get_user_map(g)
-    u.add(user_id, name)
+    u.add(user_id, name, DM)
 
 
 def reset_votes(g):
@@ -111,8 +111,18 @@ def reset_votes(g):
     game_state['votes'] = {}
     return game_state
 
-sc = SlackClient(config['SLACK_TOKEN'])
+def reset_game_state():
+    """
+    Returns an empty game state object.
+    """
+    return {'players': {},
+            'votes':{},
+            'STATUS': 'INACTIVE',
+            'ROUND': None}
+
+
 def get_user_name(g, user_id):
+    sc = SlackClient(config['SLACK_TOKEN'])
     def poll_slack_for_user():
         user_obj = json.loads(sc.api_call('users.info', user=user_id))
         user_name = user_obj['user']['name']
@@ -126,12 +136,9 @@ def get_user_name(g, user_id):
         # try one more time.
         user_name, im = poll_slack_for_user()
 
-    u = get_user_map(g)
-
     if user_name:
-        u.add(user_id, user_name, DM=im)
-
-
+        set_user_map(g, user_id, user_name, DM=im)
+        return user_name
 
 
 
