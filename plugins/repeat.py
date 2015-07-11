@@ -2,7 +2,7 @@ import time
 import random
 crontable = []
 outputs = []
-
+"""
 with open("data/clean_excuse.txt", "r") as ff:
     excuses = ff.readlines()
     excuses = [excuse.strip() for excuse in excuses]
@@ -20,4 +20,4 @@ def process_message(data):
             insult_list = ["lol noob", "l2p", "haha wow."]
             new_insult = random.choice(insult_list)
             outputs.append([data['channel'], new_insult])
-
+"""
