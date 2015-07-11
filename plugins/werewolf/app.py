@@ -14,9 +14,10 @@ from collections import defaultdict
 
 from router import command_router
 
-#config = yaml.load(file("rtmbot.conf", "r"))
-
-room_from_config = config["CHANNEL"]
+# config = yaml.load(file("rtmbot.conf", "r"))
+# room_from_config = config["CHANNEL"]
+config = 'testing'
+room_from_config = 'blank'
 
 outputs = []
 
