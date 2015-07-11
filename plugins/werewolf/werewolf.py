@@ -10,7 +10,7 @@ from slackclient import SlackClient
 import random
 from collections import defaultdict
 
-config = yaml.load(file("rtmbot.conf", "r"))
+# config = yaml.load(file("rtmbot.conf", "r"))
 ROOM = config["CHANNEL"]
 
 state = {
