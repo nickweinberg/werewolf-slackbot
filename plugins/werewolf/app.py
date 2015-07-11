@@ -14,7 +14,8 @@ from collections import defaultdict
 
 from router import command_router
 
-config = yaml.load(file("rtmbot.conf", "r"))
+#config = yaml.load(file("rtmbot.conf", "r"))
+
 room_from_config = config["CHANNEL"]
 
 outputs = []
@@ -53,7 +54,21 @@ class UserMap:
                 self.id_to_DM[user_id] = DM
 
 
+class GameState:
+    """
+    Don't worry not actually using OO lol.
+    A light wrapper. Only used by get_game_state set_state function.
+
+    """
+    def __init__(self):
+        self.state = {}
+        self.games = []
+
 USER_MAP = UserMap()
+
+
+
+GAME_STATE = GameState() # not set yet.
 
 # main entry into the app.
 def process_message(data):
