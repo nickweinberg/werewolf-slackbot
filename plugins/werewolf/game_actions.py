@@ -3,11 +3,6 @@ All game actions.
 """
 from main import get_user_map
 
-# user id stuff
-# we'll move this into players.py probs.
-
-# end user id stuff
-
 def players_in_game(g):
     return g['players'].keys()
 
@@ -30,6 +25,7 @@ def is_player_alive(g, user_id):
         return False
     else:
         print('durr')
+
 
 def player_role(g, user_id):
     return g['players'].get(user_id).get('role')
@@ -60,14 +56,89 @@ def list_players(g, user_id, *args):
     # player_names
     return None
 
-
-
 def get_current_round(g):
     """
     returns game state's current round:
         aka 'night' or 'day'
     """
     return g['ROUND']
+
+################
+# Game Actions #
+################
+
+def create_game(g, user_id, *args):
+    """
+    Reset state.
+    Let people join.
+
+    STATUS -> "WAITING_FOR_JOIN"
+    """
+    # Can only create a game
+    #   if g['STATUS'] == 'INACTIVE'
+    pass
+
+def start_game(g, user_id, *args):
+    """
+    Check if enough players.
+    (optional) Pick config setup that works w/ num of players.
+    Outut to channel (@channel) game is starting.
+    Assign Roles.
+    Message Users their roles.
+
+    STATUS -> "RUNNING"
+    """
+    # can only start a game
+    #   if enough players
+    #   if g['STATUS'] == 'WAITING_FOR_JOIN'
+    pass
+
+def join(g, user_id, *args):
+    """
+    Let player join game.
+    """
+    result, message = mod_valid_action(user_id, 'join', g)
+    # get_user_map().
+
+    # if player successfully joins.
+    # poll slack for user name.
+
+def mod_valid_action(user_id, action, g, target_name=None):
+    """
+    For game logistic actions only.
+    user_id, action, game state
+    -> (True/False, message)
+    """
+    MSG = {
+        'already_join': 'You have already joined game.',
+        'not_waiting': 'Game not waiting for players to join.'
+        'num_players': 'Not enough players to start.',
+    }
+    def can_create():
+        return True
+
+    def can_start():
+        return True
+
+    def can_join():#idk dont want to override join()
+        # status is WAITING_FOR_JOIN
+        if g.get('STATUS') not 'WAITING_FOR_JOIN':
+            return False, MSG['not_waiting']
+        # Not already in the game
+
+        return True, None
+
+    if action == 'create':
+        return can_create()
+    elif action == 'start':
+        return can_start()
+    elif action == 'join':
+        return can_join()
+
+    else:
+        # Not valid
+        return False, 'Not a valid command.'
+
 
 def is_valid_action(user_id, action, g, target_name=None):
     """
