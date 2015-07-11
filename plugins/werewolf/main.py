@@ -28,3 +28,13 @@ def process_message(data):
         # let the router deal with this nonsense
         command_router(command, data['user'])
 
+def send_message(message, channel=room_from_config):
+    """
+    Abstract away dumb idea to send message by,
+    appending to list outputs.
+
+    We just do it in here so no one has to know!
+    """
+    outputs.append([channel, message])
+
+
