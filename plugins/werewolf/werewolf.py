@@ -134,8 +134,8 @@ def command_logic(command, user_id):
     """
     router = {
         "create": create_game,
-        "start": start_game
-        "players": list_players,
+        'start': start_game,
+        'players': list_players,
         "join": join,
         "kill": eat_player,
         "vote": player_vote
