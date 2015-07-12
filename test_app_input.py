@@ -27,6 +27,7 @@ def test_setup_users():
 
     players = night_g['players'].keys()
 
+    players.sort()
     p1_id = players[0]
     p2_id = players[1]
     assert test_user_map.id_dict[p1_id] == 'nick'
@@ -50,7 +51,7 @@ def test_no_vote_target_input():
     fake_message = {'text': '!vote', 'user': 'ab'}
     night_g = get_fake_game_state()
     setup_users(night_g)
-    result = app.process_message(fake_message, night_g)
+    result = app.process_message(fake_message, g=night_g)
     assert result == 'Not a valid command.'
 
     tear_down()
@@ -59,7 +60,7 @@ def test_vote_user_not_in_game_input():
     fake_message = {'text': '!vote cd', 'user': 'cat'}
     night_g = get_fake_game_state()
     setup_users(night_g)
-    message = app.process_message(fake_message, night_g)
+    message = app.process_message(fake_message, g=night_g)
     assert message  == 'User not in the game.'
 
     tear_down()
@@ -70,7 +71,7 @@ def test_night_vote_input():
 
 
     setup_users(night_g)
-    message = app.process_message(fake_message, night_g)
+    message = app.process_message(fake_message, g=night_g)
     assert message == 'It is not day.'
 
     tear_down()
@@ -86,7 +87,7 @@ def test_day_voting_input():
 
     assert day_g['votes'] == {}
 
-    message = app.process_message(fake_message, day_g)
+    message = app.process_message(fake_message, g=day_g)
     assert day_g['votes'] == {} # shouldn't mutate day_g
 
     assert message == user_name + ' voted for ' + target_name
@@ -95,8 +96,38 @@ def test_day_voting_input():
 
     # shouldn't be allowed to vote again.
     fake_message = {'text': '!vote not_nick', 'user': 'ab'}
-    message = app.process_message(fake_message, new_day_g)
+    message = app.process_message(fake_message, g=new_day_g)
     assert message == 'You have already voted.'
 
 
     tear_down()
+
+def test_kill_input():
+    good_kill_msg = {'text': '!kill nick', 'user': 'cd'}
+    no_target_msg = {'text': '!kill', 'user': 'cd'}
+    too_many_targets_msg = {'text': '!kill you me and this', 'user': 'cd'}
+    invalid_target_msg = {'text': '!kill yolo', 'user': 'cd'}
+    not_wolf_msg = {'text': '!kill not_nick', 'user': 'ab'}
+
+    night_g = get_fake_game_state()
+
+    setup_users(night_g)
+    message = app.process_message(too_many_targets_msg, g=night_g)
+    assert message == 'Not a valid command.'
+
+    message = app.process_message(no_target_msg, g=night_g)
+    assert message == 'Not a valid command.'
+
+    message = app.process_message(invalid_target_msg, g=night_g)
+    assert message == 'User not in the game.'
+
+    message = app.process_message(not_wolf_msg, g=night_g)
+    assert message == 'You are not a werewolf.'
+
+    message_str = app.process_message(good_kill_msg, g=night_g)
+    message_list = message_str.split('\n')
+    assert message_list[0] == 'nick was eaten.'
+
+    tear_down()
+
+

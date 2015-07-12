@@ -303,9 +303,8 @@ def eat_player(g, user_id, *args):
             new_g = update_game_state(g, 'player_status', player=target_id, status='dead')
             # tell the players.
             eaten_str = "%s was eaten." % (target_name)
-            resolve_night_round(g, alert=eaten_str)
+            return resolve_night_round(new_g, alert=eaten_str), None
 
-            return '', None
 
 def resolve_night_round(g, alert=None):
     """
@@ -321,19 +320,31 @@ def resolve_night_round(g, alert=None):
     """
     # for each player in the game,
     # check if completed their action for the night.
-    if alert: # should take this out and only show events next day.
-        send_message(alert)
 
     alive_v = alive_for_village(g)
     alive_w = alive_for_werewolf(g)
 
     if len(alive_w) >= len(alive_v):
-        send_message("game over. Werewolf wins")
+        update_game_state(g, 'status', status='INACTIVE')
+        return "Game Over. Werewolves win." # returns and sends message
     elif len(alive_w) == 0:
-        send_message("game over. Village wins")
+        update_game_state(g, 'status', status='INACTIVE')
+        return "Game Over. Village wins." # returns and sends message
     else:
         # turn it into morning and start day round.
-        send_message("start day round.")
+
+        # idea:
+        # game state has 'GAME_MESSAGES' : {'channel': <channel_id>, 'message': thing to say}
+        # every night action adds game_message.
+        # If all night actions have finished. Go through and send all those messages.
+        # reset GAME_MESSAGES.
+        round_end_str = ''
+        if alert:
+            round_end_str = alert + '\n'
+
+        round_end_str = round_end_str + start_day_round(g)
+
+        return round_end_str
 
 
 def start_night_round(g):
@@ -345,6 +356,9 @@ def start_night_round(g):
     update_game_state(g, 'round', round='night')
     send_message("It is night time. \n Werewolf type _'/dm moderator !kill {who you want to eat}_ ")
 
+def start_day_round(g):
+    update_game_state(g, 'round', round='day')
+    return "It is now day time. \n type _!vote {username}_. User with most votes dies."
 
 
 def player_vote(g, user_id, *args):

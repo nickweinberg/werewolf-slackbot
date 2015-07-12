@@ -1,5 +1,6 @@
 import copy
 
+
 def get_empty_game_state():
     # hi there
     # make mock game state.
@@ -27,7 +28,21 @@ def get_fake_game_state():
                     'role': 'w',
                     'side': 'w',
                     'status': 'alive'
-                 }
+                 },
+                'ef': {
+                    'name': 'maksym',
+                    'dm': 'dm channel',
+                    'role': 'v',
+                    'side': 'v',
+                    'status': 'alive',
+                },
+                'gh': {
+                    'name': 'who',
+                    'dm': 'dm channel',
+                    'role': 'v',
+                    'side': 'v',
+                    'status': 'alive'
+                }
             },
             'votes': {},
             'STATUS': 'RUNNING',
@@ -35,8 +50,5 @@ def get_fake_game_state():
         })
 
 
-
-def tear_down():
-    reset_user_map()
 
 
