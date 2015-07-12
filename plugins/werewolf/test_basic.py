@@ -2,9 +2,9 @@
 tests okay
 """
 import pytest
-from app import *
-from game_actions.game_actions import *
-from  game_actions import change_state
+# from app import *
+# from game_actions.game_actions import *
+# from  game_actions import change_state
 
 fake_state= {
     'players': {
@@ -81,6 +81,10 @@ def test_game_action_user_map():
     new_user_map = get_user_map(g)
     assert new_user_map.id_dict['uiidLOL'] == 'lol'
     assert new_user_map.name_dict['lol'] == 'uiidLOL'
+
+def test_game_state():
+    assert GAME_STATE == {}
+
 
 
 
