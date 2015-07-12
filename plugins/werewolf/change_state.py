@@ -2,6 +2,7 @@
 " all game state change
 " in here.
 """
+import copy
 
 class GameLog:
     def __init__(self):
@@ -22,12 +23,12 @@ game_log = GameLog()
 
 
 def get_game_state():
-    return GAME_STATE
+    return copy.deepcopy(GAME_STATE)
 
 def set_game_state(new_game_state):
     global GAME_STATE
     # set game state
-    GAME_STATE = new_game_state
+    GAME_STATE = copy.deepcopy(new_game_state)
 
 
 def update_game_state(g, action, **kwargs):
@@ -84,9 +85,10 @@ def update_game_state(g, action, **kwargs):
         new_votes = {}
         mutated_g['votes'] = new_votes
     def reset_game():
-        mutated_g = reset_game_state()
+        mutated_g = copy.deepcopy(reset_game_state())
 
-    mutated_g = g
+
+    mutated_g = copy.deepcopy(g)
 
     if action=='player_status':
         change_player_status()

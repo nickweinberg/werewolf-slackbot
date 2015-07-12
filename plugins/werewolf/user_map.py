@@ -62,3 +62,10 @@ def set_user_map(g, user_id, name, DM=None):
     u = get_user_map(g)
     u.add(user_id, name, DM)
 
+def reset_user_map():
+    """
+    Only used for testing.
+    """
+    global USER_MAP
+    USER_MAP = UserMap()
+

@@ -4,7 +4,8 @@ from game_actions import(
     list_players,
     join,
     eat_player,
-    player_vote
+    player_vote,
+    list_votes
 )
 
 
@@ -21,6 +22,7 @@ def command_router(g, command, user_id):
     join(player_join)    - player attempts to join a created game
     start(start_game)    - starts game, assigns roles, other setup.
     players(list_players)- list players in the game.
+    votes(list_votes)    - list all the votes in the game.
 
     --- Game Actions ---
     kill(eat_player)   - werewolf attempts to eat a player
@@ -30,6 +32,7 @@ def command_router(g, command, user_id):
         "create": create_game,
         'start': start_game,
         'players': list_players,
+        'votes': list_votes,
         "join": join,
         "kill": eat_player,
         "vote": player_vote

@@ -96,28 +96,42 @@ def has_voted(g, user_id):
     """
     return user_id in g['votes'].keys()
 
-def list_players(g, user_id, *args):
-    """
-    * args is args to command list
-    g -> string to Slack of players
-      -> "\n".join([list of players])
-
-      "player_name"|"status"
-    """
-    # player_ids = players_in_game(g)
-    # player_names
-    u = get_user_map(g)
-    # for each player in players_in_game
-
-    return "\n".join([u.id_dict[p_id]
-                        for p_id in players_in_game(g)]), None
-
 def get_current_round(g):
     """
     returns game state's current round:
         aka 'night' or 'day'
     """
     return g['ROUND']
+
+###############
+# UI Commands #
+###############
+
+def list_players(g, user_id, *args):
+    """
+
+    * args is args to command list
+    g -> string to Slack of players
+      -> "\n".join([list of players])
+
+      "player_name"|"status"
+
+    """
+    u = get_user_map(g)
+
+
+    return "\n".join([u.id_dict[p_id] + ' | ' + player_status(g, p_id)
+                        for p_id in players_in_game(g)]), None
+
+
+def list_votes(g, *args):
+    """
+    Print a list of all the people alive.
+
+
+    """
+    pass
+
 
 ################
 # Game Actions #
@@ -259,17 +273,24 @@ def join(g, user_id, *args):
 
 def eat_player(g, user_id, *args):
     """
-    args[0] is target player.
+    ex. *args = (['kill', 'maksym'], )
+    arg_list =
+    target_name = args[1]
 
     user_name = u.id_dict.get(user_id)
 
     """
-    if len(args) < 0: # no target no good
+    arg_list = args[0]
+
+    if len(arg_list) < 1: # no target no good
         return "Have to pick a target.", None
+    elif len(arg_list) > 2: # too many args
+        return "Not a valid command.", None
     else:
         u = get_user_map(g) # get usermap
 
-        target_name = args[0]
+        target_name = arg_list[1]
+        print(arg_list)
         target_id =  u.name_dict.get(target_name) # turn name into id
         result, message = is_valid_action(user_id, 'kill', g, target_name=target_name)
         if not result:
@@ -315,10 +336,6 @@ def resolve_night_round(g, alert=None):
         send_message("start day round.")
 
 
-
-
-
-
 def start_night_round(g):
     """
     set state to night round.
@@ -331,22 +348,35 @@ def start_night_round(g):
 
 
 def player_vote(g, user_id, *args):
-    if len(args) < 0: # didn't vote on someone
+    """
+    ex. *args = (['vote', 'maksym'], )
+    arg_list = args[0]
+    target_name = arg_list[1]
+
+    user_name = u.id_dict.get(user_id)
+
+    """
+    arg_list = args[0]
+
+    if len(arg_list) < 1: # didn't vote
         return "Have to vote FOR someone.", None
+    elif len(arg_list) > 2: # too many args
+        return "Not a valid command.", None
     else:
         u = get_user_map(g) # get usermap
-        target_name = args[0]
+        target_name = arg_list[1]
         target_id =  u.name_dict.get(target_name) # turn name into id
 
-        result, message = is_valid_action(user_id, 'vote', g, target=target_id)
-    if not result:
-        # was not a valid kill
-        return message, None
-    else:
-        # player voted
-        # update state
-        # change votes to reflect their vote
-        new_g = update_game_state(g, 'vote', voter=user_id, votee=target_id)
+        result, message = is_valid_action(user_id, 'vote', g, target_name=target_name)
+        if not result:
+            # was not a valid kill
+            return message, None
+        else:
+            # player voted
+            # update state
+            # change votes to reflect their vote
+            new_g = update_game_state(g, 'vote', voter=user_id, votee=target_id)
+            return message, None
 
 
 ###################
@@ -356,6 +386,10 @@ def player_vote(g, user_id, *args):
 def mod_valid_action(user_id, action, g, target_name=None):
     """
     For game logistic actions only.
+    - create
+    - start
+    - join
+
     user_id, action, game state
     -> (True/False, message)
     """
@@ -371,7 +405,7 @@ def mod_valid_action(user_id, action, g, target_name=None):
     def can_start():
         """ some logic here """
         players = players_in_game(g)
-        if len(players_in_game(g)) < 1: # change to 3 later.
+        if len(players) < 1: # change to 3 later.
             # not enough players to start
             return False, MSG['num_players']
         return True, None
@@ -399,12 +433,16 @@ def mod_valid_action(user_id, action, g, target_name=None):
 def is_valid_action(user_id, action, g, target_name=None):
     """
     For game actions only.
+    - vote
+    - eat(kill)
+    - TODO: seer
+    - TODO: bodyguard
     user_id, action, game state
     -> (True/False, message)
     """
     # DRY yo, cleaner response messages.
     MSG = {
-        'u_not_in_game':'You are no in the game',
+        'u_not_in_game':'You are not in the game',
         'u_not_alive': 'You are not alive.',
         't_not_alive': 'Target is not alive.',
         't_not_in_game': 'Target is not in game.',
@@ -432,55 +470,58 @@ def is_valid_action(user_id, action, g, target_name=None):
         if get_current_round(g) != 'day':
             return False, MSG['not_day']
         # has not already voted
-        if not has_voted(g, user_id):
+        if has_voted(g, user_id):
             return False, MSG['has_voted']
 
-        return True, None # no message
+        # after each success vote maybe should list all votes.
+        return True, user_name + ' voted for ' + target_name  # no message
 
 
     def kill():
+        print(user_id, target_name)
         # 1) Make sure player who made the command
         # is in the game
         if not player_in_game(g,user_id):
-            return False, 'You are not in the game.'
+            return False, MSG['u_not_in_game']
         # 1a) is a werewolf
         # Only werewolf can use kill. (for now)
         if player_role(g, user_id) != 'w':
-            return False, 'not a werewolf'
+            return False, MSG['not_wolf']
         # 1c) is alive
         if not is_player_alive(g, user_id):
             return False, 'Dead wolves can not kill.'
         # 2) Kill command only valid at night.
         if get_current_round(g) != 'night':
-            return False, 'It is not night.'
+            return False, MSG['not_night']
         # 3) Target must be in game.
         if not player_in_game(g, target_id):
-            return False, 'player not in game.'
+            return False, ['t_not_in_game']
         # 4) Target must be alive.
         if not is_player_alive(g, target_id):
             return False, 'Can not kill the dead.'
 
-        return True, None # no message
+        return True, '' # no message
 
     def seer():
-        return False
+        return False, None
 
     if target_name==None:
         """
         No current role that
         has no target.
         """
-        return False
+        return False, 'need a target.'
 
     # turn target name into an id
     u = get_user_map(g)
     if u:
         # if we have access to user map
         target_id = u.name_dict.get(target_name)
+        user_name = u.id_dict.get(user_id)
         if not target_id:
-            return False # user not in usermap
+            return False, 'User not in the game.' # user not in usermap
     else:
-        return False # user map None
+        return False, 'user map not set up' # user map None
 
     if action == 'vote':
         return vote()
@@ -491,5 +532,5 @@ def is_valid_action(user_id, action, g, target_name=None):
         return seer()
     else:
         # Not valid
-        return False
+        return False, 'not a valid action'
 

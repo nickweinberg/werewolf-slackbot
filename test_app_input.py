@@ -6,50 +6,19 @@ Test sending data to process_message.
 import pytest
 from plugins.werewolf import app
 from plugins.werewolf.user_map import get_user_map, set_user_map, reset_user_map
+from plugins.werewolf.change_state import get_game_state
+import copy
 
-def get_empty_game_state():
-    # hi there
-    # make mock game state.
-    # we'll have several fixtures
-    # and a basic one we can set up in each test.
-    return {'players':{},
-            'votes':{},
-            'STATUS': 'INACTIVE',
-            'ROUND': None
-        }
+from test_fixtures import get_fake_game_state, get_empty_game_state
 
-def get_fake_game_state():
-    return {
-            'players': {
-                'ab': {
-                    'name': 'nick',
-                    'DM': 'dm channel',
-                    'role': 'v',
-                    'side': 'v',
-                    'status': 'alive'
-                    },
-                'cd': {
-                    'name': 'not_nick',
-                    'dm': 'dm channel',
-                    'role': 'w',
-                    'side': 'w',
-                    'status': 'alive'
-                 }
-            },
-            'votes': {},
-            'STATUS': 'RUNNING',
-            'ROUND': 'night'
-        }
-
+def tear_down():
+    reset_user_map()
 
 def setup_users(g):
     # for users in g
     # setup an appropriate user map.
     for player in g['players'].keys():
         set_user_map(g, player, g['players'][player]['name'])
-
-def tear_down():
-    reset_user_map()
 
 def test_setup_users():
     night_g = get_fake_game_state()
@@ -99,12 +68,12 @@ def test_night_vote_input():
     fake_message = {'text': '!vote not_nick', 'user': 'ab'}
     night_g = get_fake_game_state()
 
+
     setup_users(night_g)
     message = app.process_message(fake_message, night_g)
     assert message == 'It is not day.'
 
     tear_down()
-
 
 def test_day_voting_input():
     fake_message = {'text': '!vote not_nick', 'user': 'ab'}
@@ -118,6 +87,16 @@ def test_day_voting_input():
     assert day_g['votes'] == {}
 
     message = app.process_message(fake_message, day_g)
+    assert day_g['votes'] == {} # shouldn't mutate day_g
 
     assert message == user_name + ' voted for ' + target_name
+    new_day_g = get_game_state()
+    assert new_day_g['votes'] == {'ab': 'cd'} # now it should be mutated
+
+    # shouldn't be allowed to vote again.
+    fake_message = {'text': '!vote not_nick', 'user': 'ab'}
+    message = app.process_message(fake_message, new_day_g)
+    assert message == 'You have already voted.'
+
+
     tear_down()
