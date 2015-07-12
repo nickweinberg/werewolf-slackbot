@@ -8,67 +8,10 @@ from send_message import send_message
 import random
 from slackclient import SlackClient
 
+from user_map import get_user_map, set_user_map
 
-##############
-# user stuff #
-##############
 
-class UserMap:
-    """
-    So we don't have to keep track of two dictionaries.
-    Easiest is just to keep one instance of this in the game state.
 
-    We create this at the beginning of the game.
-
-    So we can do -
-
-    user_id -> name
-    name -> user_id
-    """
-    def __init__(self):
-        self.id_dict = {}
-        self.name_dict = {}
-        self.id_to_DM = {}
-
-    def add(self, user_id, name, DM=None):
-        """
-        self.id_dict[user_id] = name
-        self.name_dict[name] = user_id
-        """
-        if self.id_dict.get(user_id) and self.name_dict.get(name):
-            # names aleady set
-            return None
-        else:
-            self.id_dict[user_id] = name
-            self.name_dict[name] = user_id
-
-            if DM:
-                # direct message channel
-                self.id_to_DM[user_id] = DM
-
-USER_MAP = UserMap()
-
-def get_user_map(g):
-    """
-    Let's everyone get access to this delicious UserMap.
-
-    Shouldn't let you have it (since it's probably not set)
-    if game is INACTIVE.
-    """
-    if g['STATUS'] == 'INACTIVE':
-        return None
-    else:
-        return USER_MAP
-
-def set_user_map(g, user_id, name, DM=None):
-    """
-    Only way I'm letting you schmucks update user map.
-    Gets USER_MAP.
-    Adds new user.
-
-    """
-    u = get_user_map(g)
-    u.add(user_id, name, DM)
 
 def get_user_name(g, user_id):
     config = yaml.load(file('rtmbot.conf', 'r'))
@@ -106,6 +49,7 @@ def player_in_game(g, user_id):
     """
     return user_id in players_in_game(g)
 
+
 def is_player_alive(g, user_id):
     """
     game state, user_id
@@ -119,8 +63,24 @@ def is_player_alive(g, user_id):
     else:
         print('durr')
 
+def alive_for_village(g):
+    players = players_in_game(g)
+    return [p_id for p_id in players
+            if is_player_alive(g, p_id) and
+            player_side(g, p_id)=='v']
+
+def alive_for_werewolf(g):
+    players = players_in_game(g)
+    return [p_id for p_id in players
+            if is_player_alive(g, p_id) and
+            player_side(g, p_id)=='w']
+
+
 def player_role(g, user_id):
     return g['players'].get(user_id).get('role')
+
+def player_side(g, user_id):
+    return g['players'].get(user_id).get('side')
 
 def player_status(g, user_id):
     return g['players'].get(user_id).get('status')
@@ -322,11 +282,11 @@ def eat_player(g, user_id, *args):
             new_g = update_game_state(g, 'player_status', player=target_id, status='dead')
             # tell the players.
             eaten_str = "%s was eaten." % (target_name)
-            resolve_night_round(g)
+            resolve_night_round(g, alert=eaten_str)
 
-            return eat_str, None
+            return '', None
 
-def resolve_night_round(g):
+def resolve_night_round(g, alert=None):
     """
     Makes sure everyone has done all their roles.
 
@@ -340,7 +300,24 @@ def resolve_night_round(g):
     """
     # for each player in the game,
     # check if completed their action for the night.
-    pass
+    if alert: # should take this out and only show events next day.
+        send_message(alert)
+
+    alive_v = alive_for_village(g)
+    alive_w = alive_for_werewolf(g)
+
+    if len(alive_w) >= len(alive_v):
+        send_message("game over. Werewolf wins")
+    elif len(alive_w) == 0:
+        send_message("game over. Village wins")
+    else:
+        # turn it into morning and start day round.
+        send_message("start day round.")
+
+
+
+
+
 
 def start_night_round(g):
     """
@@ -349,7 +326,7 @@ def start_night_round(g):
 
     """
     update_game_state(g, 'round', round='night')
-    send_message("It is night time. \n Werewolf type _'/dm !kill {who you want to eat}_ ")
+    send_message("It is night time. \n Werewolf type _'/dm moderator !kill {who you want to eat}_ ")
 
 
 
