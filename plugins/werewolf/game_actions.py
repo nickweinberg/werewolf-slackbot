@@ -4,6 +4,7 @@ All game actions.
 import yaml
 import json
 from change_state import update_game_state
+from send_message import send_message
 
 from slackclient import SlackClient
 
@@ -185,7 +186,6 @@ def create_game(g, user_id, *args):
         new_g = update_game_state(g, 'reset_game_state')
         # change game status to WAITING
         new_g = update_game_state(new_g, 'status', status='WAITING_FOR_JOIN')
-        print(new_g)
         # send message to channel
         return '_Waiting for players..._ \n*Type !join to join.*', None
     else:
@@ -205,19 +205,50 @@ def start_game(g, user_id, *args):
     # can only start a game
     #   if enough players
     #   if g['STATUS'] == 'WAITING_FOR_JOIN'
-    if len(players_in_game(g)) < 3:
-        # not enough players to start
-        return "Not enough players to start.", None
 
-    result, message = mod_valid_action(g, user_id, 'start')
+    result, message = mod_valid_action(user_id, 'start', g)
     if not result:
         # cant start
         return "cannot start", None
 
     # tell everyone the game is starting
+    send_message("@werewolf-test Game is starting...")
+    """ message everyone details of game. """
+    players = players_in_game(g)
+    num_werewolves = 1 # only one for now.
 
+
+
+    p1_str = "_There are *%d* players in the game._\n" % len(players)
+    p2_str = "There are *%d* werewolves in the game._" % num_werewolves
+    send_message(p1_str + p2_str)
+
+    # Go through and assign everyone in the game roles.
+    assign_roles(g)
     # go to night round.
+    start_night_round(g)
 
+
+    return '', None # idk when this will return.
+
+def assign_roles(g):
+    players = players_in_game(g)
+    create_wolf = random.choice(players) # id of player
+    new_g = g
+    for player in players:
+        if player == create_wolf:
+            new_g = update_game_state(new_g, 'role', player=player, role='w')
+        else:
+            new_g = update_game_state(new_g, 'role', player=player, role='v')
+
+
+def message_everyone_roles(g):
+    """
+    for every player in game.
+    DM them their roles.
+
+    """
+    pass
 
 
 def join(g, user_id, *args):
@@ -299,6 +330,7 @@ def start_night_round(g):
 
 
     """
+    send_message("It is night time.")
     pass
 
 
@@ -341,12 +373,16 @@ def mod_valid_action(user_id, action, g, target_name=None):
         return True, None
 
     def can_start():
+        """ some logic here """
+        players = players_in_game(g)
+        if len(players_in_game(g)) < 1: # change to 3 later.
+            # not enough players to start
+            return False, MSG['num_players']
         return True, None
 
     def can_join():#idk dont want to override join()
         # status is WAITING_FOR_JOIN
         if g.get('STATUS') != 'WAITING_FOR_JOIN':
-            print(g)
             return False, MSG['not_waiting']
         # Not already in the game
         if player_in_game(g, user_id):
