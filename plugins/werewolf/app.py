@@ -10,35 +10,12 @@ import json
 import random
 from collections import defaultdict
 
-from game_actions import change_state
+import change_state
 
 from router import command_router
 
-outputs = []
+from send_message import send_message
 
-
-class Messager:
-    """
-    Abstract away dumb idea to send message by
-    appending to list outputs.
-
-    We just do it in here so no one has to know!
-    """
-    def __init__(self):
-        config = yaml.load(file("rtmbot.conf", "r"))
-        room_from_config = config["CHANNEL"]
-
-        self.room_from_config = room_from_config
-
-    def send_message(self, message, channel=None):
-        print('sending message', message)
-        if not channel:
-            channel = self.room_from_config
-
-        global outputs
-        outputs.append([channel, message])
-
-M = Messager()
 
 # main entry into the app.
 def process_message(data):
@@ -52,8 +29,8 @@ def process_message(data):
         print(game_response, channel)
 
         if channel:
-            M.send_message(game_response, channel)
+            send_message(game_response, channel)
         else:
-            M.send_message(game_response)
+            send_message(game_response)
 
 

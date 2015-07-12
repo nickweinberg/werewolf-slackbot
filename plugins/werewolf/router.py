@@ -1,4 +1,4 @@
-from game_actions.game_actions import(
+from game_actions import(
     create_game,
     start_game,
     list_players,
