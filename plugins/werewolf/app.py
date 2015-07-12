@@ -26,8 +26,6 @@ def process_message(data):
 
         # let the router deal with this nonsense
         game_response, channel = command_router(g, command, data['user'])
-        print(game_response, channel)
-
         if channel:
             send_message(game_response, channel)
         else:

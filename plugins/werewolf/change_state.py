@@ -48,10 +48,19 @@ def update_game_state(g, action, **kwargs):
         'reset_votes'
         'reset_game_state'
     """
-    def change_player_status():
+    def change_player_status(): # 'player_status'
         target = kwargs['player']
         new_status = kwargs['status']
-        mutated_g[target]['status'] = new_status
+        mutated_g['players'][target]['status'] = new_status
+
+    def change_player_role(): # 'role'
+        target = kwargs['player']
+        new_role = kwargs['role']
+        mutated_g['players'][target]['role'] = new_role
+        if new_role=='v' or new_role=='s' or new_role=='b':
+            mutated_g['players'][target]['side'] = 'v'
+        elif new_role=='w':
+            mutated_g['players'][target]['side'] = 'w'
 
     def add_vote():
         voter, votee = kwargs['voter'], kwargs['votee']
@@ -59,7 +68,11 @@ def update_game_state(g, action, **kwargs):
 
     def player_join():
         joined_player = kwargs['player']
-        mutated_g['players'][joined_player] = {}
+        mutated_g['players'][joined_player] = {
+                                                'role': 'v',
+                                                'side': 'v',
+                                                'status': 'alive'}
+
 
     def change_status():
         new_status = kwargs['status']
@@ -77,6 +90,8 @@ def update_game_state(g, action, **kwargs):
 
     if action=='player_status':
         change_player_status()
+    elif action=='role':
+        change_player_role()
     elif action=='join':
         player_join()
     elif action=='vote':

@@ -5,7 +5,7 @@ import yaml
 import json
 from change_state import update_game_state
 from send_message import send_message
-
+import random
 from slackclient import SlackClient
 
 
@@ -77,7 +77,7 @@ def get_user_name(g, user_id):
         user_obj = json.loads(sc.api_call('users.info', user=user_id))
         user_name = user_obj['user']['name']
         im = json.loads(sc.api_call('im.open', user=user_id))
-        return user_name, im
+        return user_name, im['channel']['id']
 
     try:
         user_name, im = poll_slack_for_user()
@@ -217,22 +217,23 @@ def start_game(g, user_id, *args):
     players = players_in_game(g)
     num_werewolves = 1 # only one for now.
 
-
-
     p1_str = "_There are *%d* players in the game._\n" % len(players)
     p2_str = "There are *%d* werewolves in the game._" % num_werewolves
     send_message(p1_str + p2_str)
-
+    g = update_game_state(g, 'status', status='RUNNING')
     # Go through and assign everyone in the game roles.
     assign_roles(g)
-    # go to night round.
-    start_night_round(g)
+    message_everyone_roles(g)
 
+    # go to night round.
+
+    start_night_round(g)
 
     return '', None # idk when this will return.
 
 def assign_roles(g):
     players = players_in_game(g)
+    print(players)
     create_wolf = random.choice(players) # id of player
     new_g = g
     for player in players:
@@ -240,6 +241,7 @@ def assign_roles(g):
             new_g = update_game_state(new_g, 'role', player=player, role='w')
         else:
             new_g = update_game_state(new_g, 'role', player=player, role='v')
+    return None
 
 
 def message_everyone_roles(g):
@@ -248,8 +250,25 @@ def message_everyone_roles(g):
     DM them their roles.
 
     """
-    pass
+    u = get_user_map(g)
+    # player_role(g, player_id)
 
+    all_alive = [(u.id_to_DM[p_id], player_role(g, p_id))
+                for p_id in players_in_game(g)
+                    if is_player_alive(g, p_id)]
+
+    print(all_alive)
+
+    for im, role in all_alive:
+        if role=='v':
+            nice=" Plain Villager"
+        elif role=='w':
+            nice=" Werewolf. *Awoooo!*"
+        elif role=='s':
+            nice=" Seer."
+        elif role=='b':
+            nice=" Bodyguard."
+        send_message(nice, channel=im)
 
 def join(g, user_id, *args):
     """
@@ -292,7 +311,7 @@ def eat_player(g, user_id, *args):
 
         target_name = args[0]
         target_id =  u.name_dict.get(target_name) # turn name into id
-        result, message = is_valid_action(user_id, 'kill', g, target=target_id)
+        result, message = is_valid_action(user_id, 'kill', g, target_name=target_name)
         if not result:
             # was not a valid kill
             return message, None
@@ -302,7 +321,7 @@ def eat_player(g, user_id, *args):
             # changes targeted player's status to dead
             new_g = update_game_state(g, 'player_status', player=target_id, status='dead')
             # tell the players.
-            eaten_str = "%s was eaten." % (target)
+            eaten_str = "%s was eaten." % (target_name)
             resolve_night_round(g)
 
             return eat_str, None
@@ -328,10 +347,10 @@ def start_night_round(g):
     set state to night round.
     print to screen
 
-
     """
-    send_message("It is night time.")
-    pass
+    update_game_state(g, 'round', round='night')
+    send_message("It is night time. \n Werewolf type _'/dm !kill {who you want to eat}_ ")
+
 
 
 def player_vote(g, user_id, *args):
