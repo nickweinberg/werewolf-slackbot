@@ -1,17 +1,17 @@
 """
 All game actions.
 """
+import yaml
+import json
+from change_state import update_game_state
+
+from slackclient import SlackClient
 
 
-###
-# GAME STATE
-###
+##############
+# user stuff #
+##############
 
-GAME_STATE = {}
-
-###
-# user stuff
-###
 class UserMap:
     """
     So we don't have to keep track of two dictionaries.
@@ -69,10 +69,32 @@ def set_user_map(g, user_id, name, DM=None):
     u = get_user_map(g)
     u.add(user_id, name, DM)
 
+def get_user_name(g, user_id):
+    config = yaml.load(file('rtmbot.conf', 'r'))
+    sc = SlackClient(config['SLACK_TOKEN'])
+    def poll_slack_for_user():
+        user_obj = json.loads(sc.api_call('users.info', user=user_id))
+        user_name = user_obj['user']['name']
+        im = json.loads(sc.api_call('im.open', user=user_id))
+        return user_name, im
 
-###
-# GAME ACTIONS
-###
+    try:
+        user_name, im = poll_slack_for_user()
+    except Exception as e:
+        print(e)
+        # try one more time.
+        user_name, im = poll_slack_for_user()
+
+    if user_name:
+        set_user_map(g, user_id, user_name, DM=im)
+        return user_name
+
+
+
+################
+# GAME ACTIONS #
+################
+
 def players_in_game(g):
     return g['players'].keys()
 
@@ -95,7 +117,6 @@ def is_player_alive(g, user_id):
         return False
     else:
         print('durr')
-
 
 def player_role(g, user_id):
     return g['players'].get(user_id).get('role')
@@ -124,7 +145,11 @@ def list_players(g, user_id, *args):
     """
     # player_ids = players_in_game(g)
     # player_names
-    return None
+    u = get_user_map(g)
+    # for each player in players_in_game
+
+    return "\n".join([u.id_dict[p_id]
+                        for p_id in players_in_game(g)]), None
 
 def get_current_round(g):
     """
@@ -141,12 +166,31 @@ def create_game(g, user_id, *args):
     """
     Reset state.
     Let people join.
+    annouce
 
     STATUS -> "WAITING_FOR_JOIN"
+
     """
+
+    # testing if i can append to outputs here.
+
     # Can only create a game
     #   if g['STATUS'] == 'INACTIVE'
-    pass
+    result, message = mod_valid_action(user_id, 'create', g)
+    if result:
+        # allowed to create game
+        if g['STATUS'] != 'INACTIVE':
+            return 'Can not create new game.', None
+        # reset game state.
+        new_g = update_game_state(g, 'reset_game_state')
+        # change game status to WAITING
+        new_g = update_game_state(new_g, 'status', status='WAITING_FOR_JOIN')
+        print(new_g)
+        # send message to channel
+        return '_Waiting for players..._ \n*Type !join to join.*', None
+    else:
+        return message, None # return error message, and basic channel.
+
 
 def start_game(g, user_id, *args):
     """
@@ -161,18 +205,31 @@ def start_game(g, user_id, *args):
     # can only start a game
     #   if enough players
     #   if g['STATUS'] == 'WAITING_FOR_JOIN'
-    pass
+    if len(players_in_game(g)) < 3:
+        # not enough players to start
+        return "Not enough players to start.", None
+
+    result, message = mod_valid_action(g, user_id, 'start')
+    if not result:
+        # cant start
+        return "cannot start", None
+
+    # tell everyone the game is starting
+
+    # go to night round.
+
+
 
 def join(g, user_id, *args):
     """
-    Let player join game.
+    See if player is allowed to join.
+    If so let add them to the game.
 
     """
     result, message = mod_valid_action(user_id, 'join', g)
 
     if not result:
-        send_message(message)
-        return None # could not join
+        return message, None # could not join
 
     # if player successfully joins.
     u = get_user_map(g)
@@ -183,23 +240,90 @@ def join(g, user_id, *args):
         # get_user_name polls slack and adds to user map
         user_name = get_user_name(g, user_id)
 
+    # update state with new player
+    mutated_g = update_game_state(g, 'join', player=user_id)
+
     # tell the channel the player joined.
     join_message = "%s joined the game." % user_name
-    send_message(join_message)
-    return None
+    return join_message, None
 
 def eat_player(g, user_id, *args):
-    if len(args) < 0:
-        send_message("no target")
+    """
+    args[0] is target player.
+
+    user_name = u.id_dict.get(user_id)
+
+    """
+    if len(args) < 0: # no target no good
+        return "Have to pick a target.", None
+    else:
+        u = get_user_map(g) # get usermap
+
+        target_name = args[0]
+        target_id =  u.name_dict.get(target_name) # turn name into id
+        result, message = is_valid_action(user_id, 'kill', g, target=target_id)
+        if not result:
+            # was not a valid kill
+            return message, None
+        else:
+            # player is eaten
+            # update state
+            # changes targeted player's status to dead
+            new_g = update_game_state(g, 'player_status', player=target_id, status='dead')
+            # tell the players.
+            eaten_str = "%s was eaten." % (target)
+            resolve_night_round(g)
+
+            return eat_str, None
+
+def resolve_night_round(g):
+    """
+    Makes sure everyone has done all their roles.
+
+    - if yes
+        see if game is over.
+        if yes
+            set game to over.
+            display results.
+        if no
+            change round to day.
+    """
+    # for each player in the game,
+    # check if completed their action for the night.
     pass
+
+def start_night_round(g):
+    """
+    set state to night round.
+    print to screen
+
+
+    """
+    pass
+
 
 def player_vote(g, user_id, *args):
-    pass
+    if len(args) < 0: # didn't vote on someone
+        return "Have to vote FOR someone.", None
+    else:
+        u = get_user_map(g) # get usermap
+        target_name = args[0]
+        target_id =  u.name_dict.get(target_name) # turn name into id
+
+        result, message = is_valid_action(user_id, 'vote', g, target=target_id)
+    if not result:
+        # was not a valid kill
+        return message, None
+    else:
+        # player voted
+        # update state
+        # change votes to reflect their vote
+        new_g = update_game_state(g, 'vote', voter=user_id, votee=target_id)
 
 
-####
-# GAME VALIDATION
-####
+###################
+# GAME VALIDATION #
+###################
 
 def mod_valid_action(user_id, action, g, target_name=None):
     """
@@ -212,15 +336,17 @@ def mod_valid_action(user_id, action, g, target_name=None):
         'not_waiting': 'Game not waiting for players to join.',
         'num_players': 'Not enough players to start.',
     }
+
     def can_create():
-        return True
+        return True, None
 
     def can_start():
-        return True
+        return True, None
 
     def can_join():#idk dont want to override join()
         # status is WAITING_FOR_JOIN
         if g.get('STATUS') != 'WAITING_FOR_JOIN':
+            print(g)
             return False, MSG['not_waiting']
         # Not already in the game
         if player_in_game(g, user_id):
@@ -233,7 +359,6 @@ def mod_valid_action(user_id, action, g, target_name=None):
         return can_start()
     elif action == 'join':
         return can_join()
-
     else:
         # Not valid
         return False, 'Not a valid command.'

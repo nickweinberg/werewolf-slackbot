@@ -35,12 +35,21 @@ def command_router(g, command, user_id):
         "vote": player_vote
     }
 
-    if router.get(command[0]):
-        # command[0] is command (ie. 'kill' if user sent '!kill')
-        command_fn = router[command[0]]
+    if len(command) == 1:
+        # command[0] is command (ie. 'create' if user sent '!create')
+        command_fn = router.get(command[0])
+        if command_fn:
+            return command_fn(g, user_id, command[0])
+        else: return 'Not a valid command', None
+
+    elif len(command) > 1:
         # command[1] is args (ie. 'maksym' if user sent '!kill maksym')
         # passes it back to process_mesage.
-        return command_fn(g, user_id, command[1:])
+        command_fn = router.get(command[0])
+        if command_fn:
+            return command_fn(g, user_id, command[0:])
+        else: return 'Not a valid command', None
+
     else:
         return 'Not a valid command', None
 
