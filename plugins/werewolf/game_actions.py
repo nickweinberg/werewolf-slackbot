@@ -6,9 +6,12 @@ import json
 from change_state import update_game_state
 from send_message import send_message
 import random
+import copy
 from slackclient import SlackClient
+from collections import Counter
 
 from user_map import get_user_map, set_user_map
+
 
 
 
@@ -259,25 +262,26 @@ def start_game(g, user_id, *args):
     send_message(p1_str + p2_str)
     g = update_game_state(g, 'status', status='RUNNING')
     # Go through and assign everyone in the game roles.
-    assign_roles(g)
-    message_everyone_roles(g)
+    new_g = assign_roles(g) # updated state w/ roles
+    message_everyone_roles(new_g)
 
     # go to night round.
 
-    start_night_round(g)
+    #start_night_round(g)
 
-    return '', None # idk when this will return.
+    return start_day_round(new_g), None # idk when this will return.
 
 def assign_roles(g):
     players = players_in_game(g)
     create_wolf = random.choice(players) # id of player
-    new_g = g
+    new_g = copy.deepcopy(g)
+
     for player in players:
         if player == create_wolf:
             new_g = update_game_state(new_g, 'role', player=player, role='w')
         else:
             new_g = update_game_state(new_g, 'role', player=player, role='v')
-    return None
+    return new_g
 
 
 def message_everyone_roles(g):
@@ -439,11 +443,11 @@ def start_night_round(g):
 
     """
     update_game_state(g, 'round', round='night')
-    send_message("It is night time. \n Werewolf type _'/dm moderator !kill {who you want to eat}_ ")
+    return "It is night time. \n Werewolf type_'/dm moderator !kill {who you want to eat}_ "
 
 def start_day_round(g):
     update_game_state(g, 'round', round='day')
-    return "It is now day time. \n type _!vote {username}_. User with most votes dies."
+    return "It is now day time. \n type _!vote {username}_. If user has more than half the votes. They die."
 
 
 def player_vote(g, user_id, *args):
@@ -478,11 +482,80 @@ def player_vote(g, user_id, *args):
 
             # after each vote need to check if total
             # everyone has voted.
-            did_everyone_vote(new_g)
+            if  did_everyone_vote(new_g):
+                # resolve vote round
+                result_id = resolve_votes(new_g)
+                if result_id:
+                    # result is id of player
+                    # set player status to dead.
+                    result_name = u.id_dict[result_id]
 
-            # If so we tally all the votes.
+                    new_g_2 = update_game_state(new_g, 'player_status', player=result_id, status='dead')
+
+                    # tell the players.
+                    lynch_str = "%s was lynched." % (result_name)
+                    return resolve_day_round(new_g, alert=lynch_str), None
+
+                else:
+                    return '*No one dies.*' + list_votes(g)
+
 
             return message, None
+
+def resolve_votes(g):
+    """
+    Everyone has voted.
+
+    If anyone has more than half the votes.
+    They die.
+
+    votes is a dictionary
+    key   - voter_id
+    value - voted_on_id
+
+    """
+    votes = get_all_votes(g)
+    # count up all the votes
+    if votes:
+        c = Counter(votes.values())
+        # c.most_common()
+        # [('b',2), ('a',1), ('c',1)]
+        most_votes_id = c.most_common()[0][0]
+        most_votes_count = c[most_votes_id]
+        total_votes = len(votes.keys())
+        if most_votes_count > total_votes // 2:
+            # more than half the votes
+            # they die.
+            return most_votes_id
+
+        else:
+            return False
+
+    return False # votes was none for some reason.
+
+
+def resolve_day_round(g, alert=None):
+    """
+    Like resolve_night_round, but for the day!
+
+    """
+    alive_v = alive_for_village(g)
+    alive_w = alive_for_werewolf(g)
+    round_end_str = ''
+    if alert:
+        round_end_str = alert + '\n'
+
+    if len(alive_w) >= len(alive_v):
+        update_game_state(g, 'status', status='INACTIVE')
+        return round_end_str + "Game Over. Werewolves win." # return and sends message
+    elif len(alive_w) == 0:
+        update_game_state(g, 'status', status='INACTIVE')
+        return round_end_str + "Game Over. Village wins." # returns and sends message
+    else:
+        # turn it into night and start night round
+
+        round_end_str = round_end_str + start_night_round(g)
+        return round_end_str
 
 
 
@@ -612,6 +685,7 @@ def is_valid_action(user_id, action, g, target_name=None):
 
     def seer():
         return False, None
+
 
     if target_name==None:
         """
