@@ -96,6 +96,52 @@ def has_voted(g, user_id):
     """
     return user_id in g['votes'].keys()
 
+def did_everyone_vote(g):
+    """
+    g - game state
+    -> True/False
+
+    return whether everyone who can vote
+    has voted.
+    """
+
+    # only alive players
+    alive = get_all_alive(g)
+
+    alive_and_voted = [p_id
+                        for p_id in alive
+                        if has_voted(g, p_id)]
+
+    return len(alive_and_voted) == len(alive)
+
+
+def get_all_alive(g):
+    return [p_id
+            for p_id in players_in_game(g)
+            if is_player_alive(g, p_id)]
+
+
+def get_all_votes(g):
+    """
+    All the votes.
+
+
+    """
+    # shouldn't get called if it is not the day
+    # or game is inactive. but here just in case.
+    if get_current_round(g) != 'day':
+        return None
+    elif g['STATUS'] == 'INACTIVE':
+        return None
+
+
+    return g.get('votes')
+
+
+
+
+
+
 def get_current_round(g):
     """
     returns game state's current round:
@@ -119,7 +165,6 @@ def list_players(g, user_id, *args):
     """
     u = get_user_map(g)
 
-
     return "\n".join([u.id_dict[p_id] + ' | ' + player_status(g, p_id)
                         for p_id in players_in_game(g)]), None
 
@@ -128,9 +173,27 @@ def list_votes(g, *args):
     """
     Print a list of all the people alive.
 
+    votes is a dictionary with-
+    key: voter_id
+    value: voted_on_id
 
     """
-    pass
+    votes = get_all_votes(g)
+    out_list = []
+    if votes:
+        u = get_user_map(g)
+        # turn id's into names
+        # voter ' voted ' votee
+        for v_id in votes.keys():
+            voter_name = u.id_dict[v_id]
+            votee_name = u.id_dict[votes[v_id]]
+
+            tmp = voter_name + ' voted ' + votee_name
+            out_list.append(tmp)
+
+        return '\n'.join(out_list)
+
+    return 'Cannot list votes now.', None
 
 
 ################
@@ -207,7 +270,6 @@ def start_game(g, user_id, *args):
 
 def assign_roles(g):
     players = players_in_game(g)
-    print(players)
     create_wolf = random.choice(players) # id of player
     new_g = g
     for player in players:
@@ -290,7 +352,6 @@ def eat_player(g, user_id, *args):
         u = get_user_map(g) # get usermap
 
         target_name = arg_list[1]
-        print(arg_list)
         target_id =  u.name_dict.get(target_name) # turn name into id
         result, message = is_valid_action(user_id, 'kill', g, target_name=target_name)
         if not result:
@@ -304,6 +365,30 @@ def eat_player(g, user_id, *args):
             # tell the players.
             eaten_str = "%s was eaten." % (target_name)
             return resolve_night_round(new_g, alert=eaten_str), None
+
+def seer_player(g, user_id, *args):
+    """
+    NOT IMPLEMENTED.
+    Player attemps to investigate.
+
+    If is seer & night. returns message, channel is Direct Message to seer.
+
+    ex. *args = (['seer', 'maksym'], )
+    arg_list = args[0]
+    target_name = args[1]
+    """
+    arg_list = args[0]
+
+    if len(arg_list) < 1: # no target no good
+        return "Have to pick a target.", None
+    elif len(arg_list) > 2: # too many args
+        return "Not a valid command.", None
+    else:
+        u = get_user_map(g) # get usermap
+        target_name = arg_list[1]
+        target_id = u.name_dict.get(target_name)
+        #result, message = is_valid_action(user_id, 'seer', g, target_name=target_name)
+        return 'Not Implemented', None
 
 
 def resolve_night_round(g, alert=None):
@@ -390,7 +475,15 @@ def player_vote(g, user_id, *args):
             # update state
             # change votes to reflect their vote
             new_g = update_game_state(g, 'vote', voter=user_id, votee=target_id)
+
+            # after each vote need to check if total
+            # everyone has voted.
+            did_everyone_vote(new_g)
+
+            # If so we tally all the votes.
+
             return message, None
+
 
 
 ###################
@@ -403,6 +496,7 @@ def mod_valid_action(user_id, action, g, target_name=None):
     - create
     - start
     - join
+
 
     user_id, action, game state
     -> (True/False, message)
