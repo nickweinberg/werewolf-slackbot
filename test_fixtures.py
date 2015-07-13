@@ -12,6 +12,51 @@ def get_empty_game_state():
             'ROUND': None
         }
 
+
+def all_vote_but_one_state():
+    return copy.deepcopy({
+            'players': {
+                'ab': {
+                    'name': 'nick',
+                    'DM': 'dm channel',
+                    'role': 'v',
+                    'side': 'v',
+                    'status': 'alive'
+                    },
+                'cd': {
+                    'name': 'not_nick',
+                    'dm': 'dm channel',
+                    'role': 'w',
+                    'side': 'w',
+                    'status': 'alive'
+                 },
+                'ef': {
+                    'name': 'maksym',
+                    'dm': 'dm channel',
+                    'role': 'v',
+                    'side': 'v',
+                    'status': 'alive',
+                },
+                'gh': {
+                    'name': 'who',
+                    'dm': 'dm channel',
+                    'role': 'v',
+                    'side': 'v',
+                    'status': 'alive'
+                }
+            },
+            'votes': {
+                'gh': 'cd',
+                'ef': 'cd',
+                'ab': 'cd'
+            },
+            'STATUS': 'RUNNING',
+            'ROUND': 'day'
+        })
+
+
+
+
 def get_fake_game_state():
     return copy.deepcopy({
             'players': {

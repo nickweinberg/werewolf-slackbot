@@ -561,7 +561,7 @@ def resolve_day_round(g, alert=None):
         return round_end_str + "Game Over. Werewolves win." # return and sends message
     elif len(alive_w) == 0:
         new_g = update_game_state(g, 'status', status='INACTIVE')
-        new_g = update_game_state(g, 'reset_game_state')
+        new_g = update_game_state(new_g, 'reset_game_state')
         return round_end_str + "Game Over. Village wins." # returns and sends message
     else:
         # turn it into night and start night round
@@ -643,6 +643,7 @@ def is_valid_action(user_id, action, g, target_name=None):
         'not_night': 'It is not night.',
         'not_day': 'It is not day.',
         'has_voted': 'You have already voted.'
+
     }
 
     def vote():
@@ -675,23 +676,23 @@ def is_valid_action(user_id, action, g, target_name=None):
         # 1) Make sure player who made the command
         # is in the game
         if not player_in_game(g,user_id):
-            return False, MSG['u_not_in_game']
+            return False, 'Not allowed.'
         # 1a) is a werewolf
         # Only werewolf can use kill. (for now)
         if player_role(g, user_id) != 'w':
-            return False, MSG['not_wolf']
+            return False, 'Not allowed.'
         # 1c) is alive
         if not is_player_alive(g, user_id):
             return False, 'Dead wolves can not kill.'
         # 2) Kill command only valid at night.
         if get_current_round(g) != 'night':
-            return False, MSG['not_night']
+            return False, 'Not allowed.'
         # 3) Target must be in game.
         if not player_in_game(g, target_id):
-            return False, ['t_not_in_game']
+            return False, 'Not allowed.'
         # 4) Target must be alive.
         if not is_player_alive(g, target_id):
-            return False, 'Can not kill the dead.'
+            return False, 'Not allowed.'
 
         return True, '' # no message
 

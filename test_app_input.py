@@ -6,10 +6,10 @@ Test sending data to process_message.
 import pytest
 from plugins.werewolf import app
 from plugins.werewolf.user_map import get_user_map, set_user_map, reset_user_map
-from plugins.werewolf.change_state import get_game_state
+from plugins.werewolf.change_state import get_game_state, set_game_state
 import copy
 
-from test_fixtures import get_fake_game_state, get_empty_game_state
+from test_fixtures import get_fake_game_state, get_empty_game_state, all_vote_but_one_state
 
 def tear_down():
     reset_user_map()
@@ -122,7 +122,7 @@ def test_kill_input():
     assert message == 'User not in the game.'
 
     message = app.process_message(not_wolf_msg, g=night_g)
-    assert message == 'You are not a werewolf.'
+    assert message == 'Not allowed.'
 
     message_str = app.process_message(good_kill_msg, g=night_g)
     message_list = message_str.split('\n')
@@ -131,3 +131,27 @@ def test_kill_input():
     tear_down()
 
 
+def test_reset_game():
+    g = all_vote_but_one_state()
+    setup_users(g)
+
+
+    vote_lock_msg = {'text': '!vote nick', 'user': 'cd'}
+    # g has all votes except for "cd" vote
+    # "cd" is werewolf once he locks vote, game should be
+    # over for the village.
+
+    message_str = app.process_message(vote_lock_msg, g=g)
+    message_list = message_str.split('\n')
+
+    assert message_list[0] == 'not_nick was lynched.'
+
+    new_g = get_game_state()
+    print(new_g)
+    assert new_g['STATUS'] == 'INACTIVE'
+    assert new_g['votes'] == {}
+    assert new_g['players'] == {}
+    assert new_g['ROUND'] == None
+
+
+    tear_down()

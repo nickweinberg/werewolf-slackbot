@@ -85,7 +85,13 @@ def update_game_state(g, action, **kwargs):
         new_votes = {}
         mutated_g['votes'] = new_votes
     def reset_game():
-        mutated_g = copy.deepcopy(reset_game_state())
+        new_state = reset_game_state()
+        # go through and explicitly reset everything.
+        mutated_g['votes'] = new_state['votes']
+        mutated_g['players'] = new_state['players']
+        mutated_g['ROUND'] = new_state['ROUND']
+        mutated_g['STATUS'] = new_state['STATUS']
+
 
 
     mutated_g = copy.deepcopy(g)
