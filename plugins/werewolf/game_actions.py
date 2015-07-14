@@ -412,20 +412,35 @@ def resolve_night_round(g, alert=None):
 
     alive_v = alive_for_village(g)
     alive_w = alive_for_werewolf(g)
+    u = get_user_map(g)
+
+    round_end_str = ''
+    if alert:
+        round_end_str = alert + '\n'
 
     if len(alive_w) >= len(alive_v):
         new_g = update_game_state(g, 'status', status='INACTIVE')
         # reset game state.
         new_g = update_game_state(new_g, 'reset_game_state')
+        # get werewolves names
+        # alive_w = [list of user_ids]
+        round_end_str += "Game Over. Werewolves win."
+        round_end_str += '\n'.join(
+                [u.id_dict[player] + " was a werewolf."
+                    for player in alive_w])
 
-        return "Game Over. Werewolves win." # returns and sends message
+        return round_end_str  # returns and sends message
     elif len(alive_w) == 0:
         new_g = update_game_state(g, 'status', status='INACTIVE')
-
-        # reset game state.
+# reset game state.
         new_g = update_game_state(new_g, 'reset_game_state')
 
-        return "Game Over. Village wins." # returns and sends message
+        round_end_str += "Game Over. Village wins."
+        round_end_str += '\n'.join(
+                [u.id_dict[player] + " was a werewolf."
+                    for player in alive_w])
+
+        return round_end_str # returns and sends message
     else:
         # turn it into morning and start day round.
 
@@ -434,9 +449,6 @@ def resolve_night_round(g, alert=None):
         # every night action adds game_message.
         # If all night actions have finished. Go through and send all those messages.
         # reset GAME_MESSAGES.
-        round_end_str = ''
-        if alert:
-            round_end_str = alert + '\n'
 
         round_end_str = round_end_str + start_day_round(g)
 
@@ -507,7 +519,7 @@ def player_vote(g, user_id, *args):
 
                 else:
                     # list votes returns a tuple ('str', None)
-                    return '*No one dies.*' + list_votes(g)[0], None
+                    return '*No one dies.*' + list_votes(new_g)[0], None
 
             return message, None
 
@@ -551,6 +563,7 @@ def resolve_day_round(g, alert=None):
     """
     alive_v = alive_for_village(g)
     alive_w = alive_for_werewolf(g)
+    u = get_user_map(g)
     round_end_str = ''
     if alert:
         round_end_str = alert + '\n'
@@ -558,15 +571,29 @@ def resolve_day_round(g, alert=None):
     if len(alive_w) >= len(alive_v):
         new_g = update_game_state(g, 'status', status='INACTIVE')
         new_g = update_game_state(new_g, 'reset_game_state')
-        return round_end_str + "Game Over. Werewolves win." # return and sends message
+
+        round_end_str  += "Game Over. Werewolves win."
+        round_end_str  += '\n'.join(
+                [u.id_dict[player] + " was a werewolf."
+                    for player in alive_w])
+
+
+        return round_end_str  # return and sends message
     elif len(alive_w) == 0:
         new_g = update_game_state(g, 'status', status='INACTIVE')
         new_g = update_game_state(new_g, 'reset_game_state')
-        return round_end_str + "Game Over. Village wins." # returns and sends message
+
+        round_end_str  += "Game Over. Village wins."
+        round_end_str  += '\n'.join(
+                [u.id_dict[player] + " was a werewolf."
+                    for player in alive_w])
+
+        return round_end_str # returns and sends message
     else:
         # turn it into night and start night round
+        vote_list_str = list_votes(g)[0] + '\n'
 
-        round_end_str = round_end_str + start_night_round(g)
+        round_end_str = vote_list_str + round_end_str + start_night_round(g)
         return round_end_str
 
 
