@@ -144,7 +144,7 @@ def test_reset_game():
     message_str = app.process_message(vote_lock_msg, g=g)
     message_list = message_str.split('\n')
 
-    assert message_list[0] == 'not_nick was lynched.'
+    assert message_list == 'not_nick was lynched.'
 
     new_g = get_game_state()
     print(new_g)

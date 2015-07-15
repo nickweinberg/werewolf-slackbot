@@ -615,7 +615,6 @@ def mod_valid_action(user_id, action, g, target_name=None):
     - start
     - join
 
-
     user_id, action, game state
     -> (True/False, message)
     """
