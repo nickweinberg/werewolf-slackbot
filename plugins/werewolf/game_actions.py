@@ -14,7 +14,7 @@ from user_map import UserMap, get_user_name
 
 
 
-
+u = UserMap()
 
 
 
@@ -170,12 +170,12 @@ def list_votes(g, *args):
     votes = get_all_votes(g)
     out_list = []
     if votes:
-        u = get_user_map(g)
+        u = UserMap()
         # turn id's into names
         # voter ' voted ' votee
         for v_id in votes.keys():
-            voter_name = u.id_dict[v_id]
-            votee_name = u.id_dict[votes[v_id]]
+            voter_name = u.get(user_id=v_id)
+            votee_name = u.get(user_id=votes[v_id])
 
             tmp = voter_name + ' voted ' + votee_name
             out_list.append(tmp)
@@ -276,10 +276,10 @@ def message_everyone_roles(g):
     DM them their roles.
 
     """
-    u = get_user_map(g)
+    u = UserMap()
     # player_role(g, player_id)
 
-    all_alive = [(u.id_to_DM[p_id], player_role(g, p_id))
+    all_alive = [(u.get(user_id=p_id, DM=True), player_role(g, p_id))
                 for p_id in players_in_game(g)
                     if is_player_alive(g, p_id)]
 
@@ -308,13 +308,14 @@ def join(g, user_id, *args):
         return message, None # could not join
 
     # if player successfully joins.
-    u = get_user_map(g)
-    user_name = u.id_dict.get(user_id)
+    u = UserMap()
+
+    user_name = u.get(user_id=user_id)
 
     if not user_name:
         # user not in user_map yet
         # get_user_name polls slack and adds to user map
-        user_name = get_user_name(g, user_id)
+        user_name = get_user_name(user_id)
 
     # update state with new player
     mutated_g = update_game_state(g, 'join', player=user_id)
@@ -339,10 +340,10 @@ def eat_player(g, user_id, *args):
     elif len(arg_list) > 2: # too many args
         return "Not a valid command.", None
     else:
-        u = get_user_map(g) # get usermap
+        u = UserMap() # get usermap
 
         target_name = arg_list[1]
-        target_id =  u.name_dict.get(target_name) # turn name into id
+        target_id =  u.get(name=target_name) # turn name into id
         result, message = is_valid_action(user_id, 'kill', g, target_name=target_name)
         if not result:
             # was not a valid kill
@@ -374,9 +375,8 @@ def seer_player(g, user_id, *args):
     elif len(arg_list) > 2: # too many args
         return "Not a valid command.", None
     else:
-        u = get_user_map(g) # get usermap
         target_name = arg_list[1]
-        target_id = u.name_dict.get(target_name)
+        target_id = u.get(name=target_name)
         #result, message = is_valid_action(user_id, 'seer', g, target_name=target_name)
         return 'Not Implemented', None
 
@@ -393,7 +393,6 @@ def make_end_round_str(g, alert=None, game_over=None):
         round_end_str += alert
 
     if game_over:
-        u = get_user_map(g)
         if game_over == 'w':
             # werewolves won
             round_end_str += "Game Over. Werewolves wins.\n"
@@ -404,7 +403,7 @@ def make_end_round_str(g, alert=None, game_over=None):
 
         # Display list of players and their roles
         round_end_str += '\n'.join(
-                [u.id_dict[p_id] + "%s | *%s*." % (u.id_dict[p_id], player_role(g, p_id))
+                [u.get(user_id=p_id) + "%s | *%s*." % (u.get(user_id=p_id), player_role(g, p_id))
                     for p_id in players_in_game(g)])
 
     return round_end_str
@@ -485,9 +484,8 @@ def player_vote(g, user_id, *args):
     elif len(arg_list) > 2: # too many args
         return "Not a valid command.", None
     else:
-        u = get_user_map(g) # get usermap
         target_name = arg_list[1]
-        target_id =  u.name_dict.get(target_name) # turn name into id
+        target_id =  u.get(name=target_name) # turn name into id
 
         result, message = is_valid_action(user_id, 'vote', g, target_name=target_name)
         if not result:
@@ -722,11 +720,10 @@ def is_valid_action(user_id, action, g, target_name=None):
         return False, 'need a target.'
 
     # turn target name into an id
-    u = get_user_map(g)
     if u:
         # if we have access to user map
-        target_id = u.name_dict.get(target_name)
-        user_name = u.id_dict.get(user_id)
+        target_id = u.get(name=target_name)
+        user_name = u.get(user_id)
         if not target_id:
             return False, 'User not in the game.' # user not in usermap
     else:
