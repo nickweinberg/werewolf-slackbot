@@ -71,8 +71,10 @@ def list_votes(g, *args):
         for v_id in votes.keys():
             voter_name = u.get(user_id=v_id)
             votee_name = u.get(user_id=votes[v_id])
-
-            tmp = voter_name + ' voted ' + votee_name
+            if votee_name:
+                tmp = voter_name + ' voted ' + votee_name
+            else:
+                tmp = voter_name + ' passed.'
             out_list.append(tmp)
 
         return '\n'.join(out_list), None
@@ -293,11 +295,11 @@ def make_end_round_str(g, alert=None, game_over=None):
     if game_over:
         if game_over == 'w':
             # werewolves won
-            round_end_str += "Game Over. Werewolves wins.\n"
+            round_end_str += "\n Game Over. Werewolves wins.\n"
 
         elif game_over == 'v':
             # village wins
-            round_end_str += "Game Over. Village wins.\n"
+            round_end_str += "\n Game Over. Village wins.\n"
 
         # Display list of players and their roles
         round_end_str += '\n'.join(
@@ -397,7 +399,7 @@ def player_vote(g, user_id, *args):
 
             # after each vote need to check if total
             # everyone has voted.
-            if  did_everyone_vote(new_g):
+            if did_everyone_vote(new_g):
                 # resolve vote round
                 result_id = resolve_votes(new_g)
                 if result_id:
@@ -416,8 +418,11 @@ def player_vote(g, user_id, *args):
 
                 else:
                     # list votes returns a tuple ('str', None)
-                    return '*No one dies.*' + list_votes(new_g)[0], None
-
+                    return resolve_day_round(new_g, alert='*No one dies.*'), None
+            else:
+                # valid vote, but not everyone voted yet.
+                # suggestion to list vote summary every vote.
+                return list_votes(new_g)[0] + '\n\n' + message
             return message, None
 
 def resolve_votes(g):
@@ -427,10 +432,11 @@ def resolve_votes(g):
     If anyone has more than half the votes.
     They die.
 
+    If more than half the people passed then no one dies.
+
     votes is a dictionary
     key   - voter_id
     value - voted_on_id
-
     """
     votes = get_all_votes(g)
     # count up all the votes
@@ -444,7 +450,10 @@ def resolve_votes(g):
         if most_votes_count > total_votes // 2:
             # more than half the votes
             # they die.
-            return most_votes_id
+            if most_votes_id == 'pass':
+                return False # no one dies
+            else:
+                return most_votes_id
 
         else:
             return False

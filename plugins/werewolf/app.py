@@ -21,6 +21,7 @@ from send_message import send_message
 def process_message(data, g=None): # g=None so we can tests.
     message = data.get('text', '')
     if message.startswith('!'): # trigger is "!"
+
         if not g: # if g is not set get game state.
             g_copy = copy.deepcopy(change_state.get_game_state())
         else:
@@ -38,3 +39,4 @@ def process_message(data, g=None): # g=None so we can tests.
     return None
 
 
+# hmset uid:1:transform fn 'vote' args player 'nick' status 'alive'

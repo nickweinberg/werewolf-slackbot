@@ -33,11 +33,13 @@ class UserMap:
 
     def get(self, user_id=None, name=None, DM=None):
         if DM and user_id:
-            return self.r_server.hmget('users:game', 'DM:'+user_id)
+            return self.r_server.hmget('users:game', 'DM:'+user_id)[0]
         elif user_id:
-            return self.r_server.hmget('users:game', user_id)
+            return self.r_server.hmget('users:game', user_id)[0]
         elif name:
-            return self.r_server.hmget('users:game', name)
+            return self.r_server.hmget('users:game', name)[0]
+        else:
+            return None
 
 
 def get_user_name(user_id):

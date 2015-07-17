@@ -79,7 +79,6 @@ def is_valid_action(user_id, action, g, target_name=None):
         'not_night': 'It is not night.',
         'not_day': 'It is not day.',
         'has_voted': 'You have already voted.'
-
     }
 
     def vote():
@@ -90,21 +89,27 @@ def is_valid_action(user_id, action, g, target_name=None):
         # is alive
         if not is_player_alive(g, user_id):
             return False, MSG['u_not_alive']
+        # only valid during day
+        if get_current_round(g) != 'day':
+            return False, MSG['not_day']
+
+        # if target_name=pass is okay
+        if target_name == 'pass':
+            return True, user_name + ' wants to pass.'
+
         # target is in game
         if not player_in_game(g, target_id):
             return False, MSG['t_not_in_game']
         # target is alive
         if not is_player_alive(g, target_id):
             return False, MSG['t_not_alive']
-        # only valid during day
-        if get_current_round(g) != 'day':
-            return False, MSG['not_day']
-        # has not already voted
-        if has_voted(g, user_id):
-            return False, MSG['has_voted']
 
-        # after each success vote maybe should list all votes.
-        return True, user_name + ' voted for ' + target_name  # no message
+        # voting again just changes your vote.
+        if has_voted(g, user_id):
+            return True, user_name + ' changed vote to ' + '*'+target_name + '.*'
+
+        # after each success vote should list all votes.
+        return True, user_name + ' voted for ' + '*' + target_name + '.*'
 
 
     def kill():
@@ -149,10 +154,8 @@ def is_valid_action(user_id, action, g, target_name=None):
         # if we have access to user map
         target_id = u.get(name=target_name)
         user_name = u.get(user_id)
-        if not target_id:
+        if not target_id and target_name != 'pass':
             return False, 'User not in the game.' # user not in usermap
-    else:
-        return False, 'user map not set up' # user map None
 
     if action == 'vote':
         return vote()

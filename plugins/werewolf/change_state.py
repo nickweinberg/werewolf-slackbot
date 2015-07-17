@@ -2,6 +2,7 @@
 " all game state change
 " in here.
 """
+import redis
 import copy
 
 class GameLog:
