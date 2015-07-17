@@ -359,7 +359,7 @@ def start_night_round(g):
 
     """
     update_game_state(g, 'round', round='night')
-    return "It is night time. \n Werewolf type_'/dm moderator !kill {who you want to eat}_ "
+    return "It is night time. \n Werewolf type_'/dm moderator !kill {who you want to eat}_ \n\n *Talking is NOT Allowed.*"
 
 def start_day_round(g):
     update_game_state(g, 'round', round='day')
@@ -403,7 +403,7 @@ def player_vote(g, user_id, *args):
                 if result_id:
                     # result is id of player
                     # set player status to dead.
-                    result_name = u.id_dict[result_id]
+                    result_name = u.get(user_id=result_id)
 
                     new_g_2 = update_game_state(new_g, 'player_status', player=result_id, status='dead')
                     # have to reset all the votes
@@ -411,7 +411,8 @@ def player_vote(g, user_id, *args):
 
                     # tell the players.
                     lynch_str = "%s was lynched." % (result_name)
-                    return resolve_day_round(new_g_3, alert=lynch_str), None
+                    # pass in game state before votes reset.
+                    return resolve_day_round(new_g_2, alert=lynch_str), None
 
                 else:
                     # list votes returns a tuple ('str', None)
