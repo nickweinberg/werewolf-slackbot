@@ -2,8 +2,17 @@
 " all game state change
 " in here.
 """
+
 import redis
+import json
 import copy
+
+
+"""
+game:state
+
+"""
+r_server = redis.Redis('localhost')
 
 class GameLog:
     def __init__(self):
@@ -24,12 +33,16 @@ game_log = GameLog()
 
 
 def get_game_state():
-    return copy.deepcopy(GAME_STATE)
+    try:
+        return json.loads(r_server.get('game:state'))
+    except:
+        return copy.deepcopy(initial_game_state())
 
 def set_game_state(new_game_state):
     global GAME_STATE
     # set game state
     GAME_STATE = copy.deepcopy(new_game_state)
+    r_server.set('game:state', json.dumps(new_game_state))
 
 
 def update_game_state(g, action, **kwargs):
@@ -121,10 +134,21 @@ def update_game_state(g, action, **kwargs):
 
     return mutated_g
 
+def initial_game_state():
+    """
+    Returns an empty game state object.
+    """
+    return {'players': {},
+            'votes':{},
+            'STATUS': 'INACTIVE',
+            'ROUND': None}
+
 def reset_game_state():
     """
     Returns an empty game state object.
     """
+    r_server.set('game:state', json.dumps(initial_game_state()))
+
     return {'players': {},
             'votes':{},
             'STATUS': 'INACTIVE',
