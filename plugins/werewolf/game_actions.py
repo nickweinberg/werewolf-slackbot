@@ -10,31 +10,11 @@ import copy
 from slackclient import SlackClient
 from collections import Counter
 
-from user_map import get_user_map, set_user_map
+from user_map import UserMap, get_user_name
 
 
 
 
-
-def get_user_name(g, user_id):
-    config = yaml.load(file('rtmbot.conf', 'r'))
-    sc = SlackClient(config['SLACK_TOKEN'])
-    def poll_slack_for_user():
-        user_obj = json.loads(sc.api_call('users.info', user=user_id))
-        user_name = user_obj['user']['name']
-        im = json.loads(sc.api_call('im.open', user=user_id))
-        return user_name, im['channel']['id']
-
-    try:
-        user_name, im = poll_slack_for_user()
-    except Exception as e:
-        print(e)
-        # try one more time.
-        user_name, im = poll_slack_for_user()
-
-    if user_name:
-        set_user_map(g, user_id, user_name, DM=im)
-        return user_name
 
 
 

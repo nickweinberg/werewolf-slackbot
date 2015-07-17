@@ -1,5 +1,7 @@
-
-
+import redis
+import yaml
+import json
+from slackclient import SlackClient
 
 ##############
 # user stuff #
@@ -18,54 +20,46 @@ class UserMap:
     name -> user_id
     """
     def __init__(self):
-        self.id_dict = {}
-        self.name_dict = {}
-        self.id_to_DM = {}
+        self.r_server = redis.Redis('localhost')
 
-    def add(self, user_id, name, DM=None):
+    def add(self, user_id, name, DM):
         """
-        self.id_dict[user_id] = name
-        self.name_dict[name] = user_id
+        adds
+        user_id -> name
+        name -> user_id
+        DM:user_id -> Direct Message channel.
         """
-        if self.id_dict.get(user_id) and self.name_dict.get(name):
-            # names aleady set
-            return None
-        else:
-            self.id_dict[user_id] = name
-            self.name_dict[name] = user_id
+        self.r_server.hmset('users:game', {user_id: name, name: user_id, 'DM:'+user_id: DM})
 
-            if DM:
-                # direct message channel
-                self.id_to_DM[user_id] = DM
+    def get(self, user_id=None, name=None, DM=None):
+        if DM and user_id:
+            return self.r_server.hmget('users:game', 'DM:'+user_id)
+        elif user_id:
+            return self.r_server.hmget('users:game', user_id)
+        elif name:
+            return self.r_server.hmget('users:game', name)
 
-USER_MAP = UserMap()
 
-def get_user_map(g):
-    """
-    Let's everyone get access to this delicious UserMap.
+def get_user_name(user_id):
+    config = yaml.load(file('rtmbot.conf', 'r'))
+    sc = SlackClient(config['SLACK_TOKEN'])
+    u = UserMap()
 
-    Shouldn't let you have it (since it's probably not set)
-    if game is INACTIVE.
-    """
-    if g['STATUS'] == 'INACTIVE':
-        return None
-    else:
-        return USER_MAP
+    def poll_slack_for_user():
+        user_obj = json.loads(sc.api_call('users.info', user=user_id))
+        user_name = user_obj['user']['name']
+        im = json.loads(sc.api_call('im.open', user=user_id))
+        return user_name, im['channel']['id']
 
-def set_user_map(g, user_id, name, DM=None):
-    """
-    Only way I'm letting you schmucks update user map.
-    Gets USER_MAP.
-    Adds new user.
+    try:
+        user_name, im = poll_slack_for_user()
+    except Exception as e:
+        print(e)
+        # try one more time.
+        user_name, im = poll_slack_for_user()
 
-    """
-    u = get_user_map(g)
-    u.add(user_id, name, DM)
+    if user_name:
+        u.add(user_id, user_name, im)
+        return user_name
 
-def reset_user_map():
-    """
-    Only used for testing.
-    """
-    global USER_MAP
-    USER_MAP = UserMap()
 
