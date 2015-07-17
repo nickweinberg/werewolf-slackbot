@@ -150,10 +150,12 @@ def list_players(g, user_id, *args):
       "player_name"|"status"
 
     """
-    u = get_user_map(g)
+    u = UserMap()
 
-    return "\n".join([u.id_dict[p_id] + ' | ' + player_status(g, p_id)
-                        for p_id in players_in_game(g)]), None
+    # gets all names.
+    return '\n'.join([u.get(user_id=p_id) + ' | ' + player_status(g, p_id)
+                    for p_id in players_in_game(g)]), None
+
 
 
 def list_votes(g, *args):
