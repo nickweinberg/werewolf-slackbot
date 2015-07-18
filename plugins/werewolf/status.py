@@ -87,6 +87,23 @@ def get_all_alive(g):
             for p_id in players_in_game(g)
             if is_player_alive(g, p_id)]
 
+def does_have_night_action(g, user_id):
+    """
+    players with night actions (atm)
+
+    w: werewolf (or just alpha wolf)
+    s: seer
+    b: bodyguard
+    c: chupa
+
+    """
+    night_action_list = ['w', 's', 'b', 'c']
+    return player_role(g, user_id) in night_action_list
+
+
+
+
+
 def get_all_votes(g):
     """
     All the votes.

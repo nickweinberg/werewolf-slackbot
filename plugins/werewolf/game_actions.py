@@ -26,6 +26,7 @@ from status import (
         get_all_alive,
         get_all_votes,
         get_current_round,
+        does_have_night_action,
 )
 
 
@@ -134,7 +135,7 @@ def start_countdown(g, user_id, *args):
     print('sending message')
     message_str = 'Countdown started. *20 seconds* left.\n ' + u.get(user_id=msg) + ' please vote. Or your vote will be passed.'
 
-    t = threading.Timer(5.0, callback_vote)
+    t = threading.Timer(20.0, callback_vote)
     t.start()
 
     return message_str, None
@@ -412,12 +413,25 @@ def resolve_night_round(g, alert=None):
 
 def start_night_round(g):
     """
-    set state to night round.
-    print to screen
-
+    1.) Set state to night round.
+    2.) For each player,
+        if it is a character without a night action (ie. 'v'):
+            set completed_night_action: True
+            else completed_night_action: False
+    3.) Send night message.
     """
-    update_game_state(g, 'round', round='night')
+    all_alive = get_all_alive(g)
+
+    new_g = update_game_state(g, 'round', round='night')
+
+    for player_id in all_alive:
+        new_g = update_game_state(new_g,
+                    'change_night_action_status',
+                    player=player_id,
+                    completed_night_action=does_have_night_action(g, player_id))
+
     return "It is night time. \n Werewolf type_'/dm moderator !kill {who you want to eat}_ \n\n *Talking is NOT Allowed.*"
+
 
 def start_day_round(g):
     update_game_state(g, 'round', round='day')

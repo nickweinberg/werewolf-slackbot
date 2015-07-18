@@ -68,6 +68,10 @@ def update_game_state(g, action, **kwargs):
         new_status = kwargs['status']
         mutated_g['players'][target]['status'] = new_status
 
+    def change_night_action_status():
+        target = kwargs['player']
+        mutated_g['players'][target]['completed_night_action'] = kwargs['completed_night_action']
+
     def change_player_role(): # 'role'
         target = kwargs['player']
         new_role = kwargs['role']
@@ -107,7 +111,6 @@ def update_game_state(g, action, **kwargs):
         mutated_g['STATUS'] = new_state['STATUS']
 
 
-
     mutated_g = copy.deepcopy(g)
 
     if action=='player_status':
@@ -126,6 +129,8 @@ def update_game_state(g, action, **kwargs):
         reset_votes()
     elif action=='reset_game_state':
         reset_game()
+    elif action=='change_night_action_status':
+        change_night_action_status()
 
     set_game_state(mutated_g)
 

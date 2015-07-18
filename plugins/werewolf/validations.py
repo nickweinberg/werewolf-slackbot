@@ -163,6 +163,18 @@ def is_valid_action(user_id, action, g, target_name=None):
         return True, '' # no message
 
     def seer():
+        # Player making command must be in the game.
+        # 'you are not in the game.'
+
+        # Player must be alive.
+        # 'you are not alive.'
+
+        # Player must be the seer
+
+        # Must be night.
+
+        # Must not have already used power that night.
+
         return False, None
 
     u = UserMap()
