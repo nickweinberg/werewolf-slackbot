@@ -1,14 +1,14 @@
 """
 All game actions.
 """
-from change_state import update_game_state
+from change_state import update_game_state, get_game_state
 from send_message import send_message
 import random
 import copy
 from collections import Counter
+import time
 
 from user_map import UserMap, get_user_name
-
 from validations import mod_valid_action, is_valid_action
 
 from status import (
@@ -81,6 +81,64 @@ def list_votes(g, *args):
 
     return 'Cannot list votes now.', None
 
+""" fn's to add to crontable """
+def annoy():
+    check_bool, msg = check()
+    if not check_bool:
+        # not time to start countdown
+        return msg, None
+    print('hi')
+
+def start_countdown(g, user_id, *args):
+    """
+    If during day and waiting on one more player to vote.
+
+    Messages that player.
+
+    If they take too long, their vote becomes a pass.
+
+    """
+    import threading
+    def check():
+        # who hasn't voted.
+        # if round is still day
+        check_g = get_game_state() # make sure state hasn't changed.
+        result, message = mod_valid_action(user_id, 'countdown', check_g)
+        if not result:
+            return False, message
+
+        all_alive = get_all_alive(g)
+        yet_to_vote_list = [
+                p_id for p_id in all_alive
+                if not has_voted(g, p_id)]
+
+        if len(yet_to_vote_list) > 1:
+            return False, 'Countdown cannot start now.'
+
+        yet_to_vote = yet_to_vote_list[0]
+        return True, yet_to_vote
+
+    def callback_vote():
+        check_bool, yet_to_vote = check()
+        print('checking vote')
+        print(check_bool, yet_to_vote)
+        if check_bool:
+            check_g = get_game_state()
+            send_message(player_vote(check_g, yet_to_vote, ['vote', 'pass'])[0])
+
+    check_bool, msg = check()
+    if not check_bool:
+        # not time to start countdown
+        return msg, None
+
+    print('sending message')
+    message_str = 'Countdown started. *20 seconds* left.\n ' + u.get(user_id=msg) + ' please vote. Or your vote will be passed.'
+
+    t = threading.Timer(5.0, callback_vote)
+    t.start()
+
+    return message_str, None
+
 
 ################
 # Game Actions #
@@ -132,7 +190,8 @@ def start_game(g, user_id, *args):
     result, message = mod_valid_action(user_id, 'start', g)
     if not result:
         # cant start
-        return "cannot start", None
+        print(result, message)
+        return message, None
 
     # tell everyone the game is starting
     send_message("@channel: Game is starting...")
@@ -150,10 +209,7 @@ def start_game(g, user_id, *args):
 
     # go to night round.
 
-    #start_night_round(g)
-
     return start_day_round(new_g), None # idk when this will return.
-
 
 
 
@@ -373,6 +429,7 @@ def player_vote(g, user_id, *args):
     ex. *args = (['vote', 'maksym'], )
     arg_list = args[0]
     target_name = arg_list[1]
+
 
     user_name = u.id_dict.get(user_id)
 

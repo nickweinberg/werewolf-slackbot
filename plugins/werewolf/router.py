@@ -5,7 +5,8 @@ from game_actions import(
     join,
     eat_player,
     player_vote,
-    list_votes
+    list_votes,
+    start_countdown
 )
 
 
@@ -24,6 +25,8 @@ def command_router(g, command, user_id):
     players(list_players)- list players in the game.
     votes(list_votes)    - list all the votes in the game.
 
+    countdown(start_countdown) - intitiate vote pass to lame player.
+
     --- Game Actions ---
     kill(eat_player)   - werewolf attempts to eat a player
     vote(player_vote)  - players attempts to vote.
@@ -34,8 +37,12 @@ def command_router(g, command, user_id):
         'players': list_players,
         'votes': list_votes,
         "join": join,
+        "countdown": start_countdown,
+
         "kill": eat_player,
         "vote": player_vote
+
+
     }
 
     if len(command) == 1:

@@ -1,5 +1,4 @@
 """
-
 Game status functions
 
 """
@@ -13,7 +12,6 @@ def player_in_game(g, user_id):
     -> True/False
     """
     return user_id in players_in_game(g)
-
 
 def is_player_alive(g, user_id):
     """
@@ -89,12 +87,9 @@ def get_all_alive(g):
             for p_id in players_in_game(g)
             if is_player_alive(g, p_id)]
 
-
 def get_all_votes(g):
     """
     All the votes.
-
-
     """
     # shouldn't get called if it is not the day
     # or game is inactive. but here just in case.
@@ -102,7 +97,6 @@ def get_all_votes(g):
         return None
     elif g['STATUS'] == 'INACTIVE':
         return None
-
 
     return g.get('votes')
 

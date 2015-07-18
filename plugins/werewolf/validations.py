@@ -5,6 +5,9 @@ from status import (
         is_player_alive,
         get_current_round,
         has_voted,
+        get_all_alive,
+        get_all_votes
+
 )
 
 from user_map import UserMap
@@ -19,6 +22,7 @@ def mod_valid_action(user_id, action, g, target_name=None):
     - create
     - start
     - join
+    - countdown
 
     user_id, action, game state
     -> (True/False, message)
@@ -38,6 +42,10 @@ def mod_valid_action(user_id, action, g, target_name=None):
         if len(players) < 1: # change to 3 later.
             # not enough players to start
             return False, MSG['num_players']
+
+        if g.get('STATUS') != 'WAITING_FOR_JOIN':
+            return False, MSG['not_waiting']
+
         return True, None
 
     def can_join():#idk dont want to override join()
@@ -49,12 +57,31 @@ def mod_valid_action(user_id, action, g, target_name=None):
             return False, MSG['already_join']
         return True, None
 
+    def can_countdown():
+       """
+       Must be day.
+       Must be one player left to vote.
+       """
+       if get_current_round(g) != "day":
+           return False, 'It is not day.'
+       elif not is_player_alive(g, user_id):
+           return False, 'You are not in the game.'
+       # get list of all alive
+       # get list of votes
+       # if list of votes == all alive - 1
+       elif len(get_all_alive(g))- 1 == len(get_all_votes(g).keys()):
+           return True, None
+       else:
+           return False, 'Can not start countdown now.'
+
     if action == 'create':
         return can_create()
     elif action == 'start':
         return can_start()
     elif action == 'join':
         return can_join()
+    elif action == 'countdown':
+        return can_countdown()
     else:
         # Not valid
         return False, 'Not a valid command.'
@@ -111,9 +138,7 @@ def is_valid_action(user_id, action, g, target_name=None):
         # after each success vote should list all votes.
         return True, user_name + ' voted for ' + '*' + target_name + '.*'
 
-
     def kill():
-        print(user_id, target_name)
         # 1) Make sure player who made the command
         # is in the game
         if not player_in_game(g,user_id):
